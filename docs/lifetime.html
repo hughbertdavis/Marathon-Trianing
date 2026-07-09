@@ -293,6 +293,22 @@
   rect.stage-light { fill: color-mix(in srgb, var(--recovery) 55%, var(--surface-2)); }
   rect.stage-rem { fill: var(--training); }
   rect.stage-awake { fill: var(--border); }
+
+  .chart-nav {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    margin-bottom: 18px;
+  }
+  .navbtn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--ink);
+    font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 20px;
+    cursor: pointer; font-family: inherit;
+  }
+  .navbtn:hover:not(:disabled) { border-color: var(--training); }
+  .navbtn:disabled { opacity: 0.35; cursor: default; }
+  .chart-range {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 12.5px; color: var(--ink-muted); min-width: 160px; text-align: center;
+  }
 </style>
 <div class="dashboard">
   <header class="topbar">
@@ -300,7 +316,7 @@
       <h1>Training Dashboard</h1>
       <p class="subtitle">All-time totals across your Garmin history</p>
     </div>
-    <div class="topbar-meta">Last updated<br><strong>Thursday, Jul 9, 2026 - 3:35 PM</strong></div>
+    <div class="topbar-meta">Last updated<br><strong>Thursday, Jul 9, 2026 - 3:59 PM</strong></div>
   </header>
   <nav class="pagenav"><a class="navlink" href="index.html">Overview</a><a class="navlink" href="training.html">Training</a><a class="navlink" href="recovery.html">Recovery</a><a class="navlink" href="altitude.html">Altitude</a><a class="navlink active" href="lifetime.html">Lifetime</a></nav>
   

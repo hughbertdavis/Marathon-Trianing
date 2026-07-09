@@ -26,7 +26,7 @@ def week_start(d: date) -> date:
 
 
 def week_label(d: date) -> str:
-    return f"{MONTH_ABBR[d.month - 1]} {d.day}"
+    return f"{MONTH_ABBR[d.month - 1]} {d.day} '{str(d.year)[2:]}"
 
 
 def load_data() -> dict:
@@ -523,74 +523,8 @@ def build_heatmap(data: dict) -> str:
   </div>'''
 
 
-def sparkline(values, week_labels, decimals=0, kind="line"):
-    """Render a compact SVG trend chart with clickable points (class 'pt', data-week index)."""
-    W, H = 280, 84
-    pad_l, pad_r, pad_t, pad_b = 8, 8, 10, 18
-    plot_w = W - pad_l - pad_r
-    plot_h = H - pad_t - pad_b
-
-    pts = [(i, v) for i, v in enumerate(values) if v is not None]
-    if len(pts) < 2:
-        return f'<svg viewBox="0 0 {W} {H}" class="spark"><text x="{W/2}" y="{H/2}" class="spark-empty" text-anchor="middle">Not enough data yet</text></svg>'
-
-    vmin = min(v for _, v in pts)
-    vmax = max(v for _, v in pts)
-    if vmax == vmin:
-        vmax = vmin + 1
-
-    def x_of(i):
-        return pad_l + (i / (len(values) - 1)) * plot_w if len(values) > 1 else pad_l
-
-    def y_of(v):
-        return pad_t + plot_h - ((v - vmin) / (vmax - vmin)) * plot_h
-
-    baseline_y = pad_t + plot_h
-
-    svg = [f'<svg viewBox="0 0 {W} {H}" class="spark" role="img">']
-    svg.append(f'<line x1="{pad_l}" y1="{baseline_y}" x2="{W - pad_r}" y2="{baseline_y}" class="spark-grid" />')
-
-    if kind == "bar":
-        bar_w = plot_w / len(values) * 0.55
-        for i, v in enumerate(values):
-            if v is None:
-                continue
-            x = x_of(i) - bar_w / 2
-            y = y_of(v)
-            h = baseline_y - y
-            last = (i == len(values) - 1)
-            cls = "bar bar-current pt" if last else "bar pt"
-            svg.append(
-                f'<rect x="{x:.1f}" y="{y:.1f}" width="{bar_w:.1f}" height="{h:.1f}" rx="2" '
-                f'class="{cls}" data-week="{i}" tabindex="0">'
-                f'<title>{week_labels[i]}: {fmt(v, decimals)}</title></rect>'
-            )
-    else:
-        path_pts = [(x_of(i), y_of(v)) for i, v in pts]
-        line_d = "M " + " L ".join(f"{x:.1f} {y:.1f}" for x, y in path_pts)
-        area_d = line_d + f" L {path_pts[-1][0]:.1f} {baseline_y} L {path_pts[0][0]:.1f} {baseline_y} Z"
-        svg.append(f'<path d="{area_d}" class="spark-area" />')
-        svg.append(f'<path d="{line_d}" class="spark-line" />')
-        for idx, (i, v) in enumerate(pts):
-            x, y = path_pts[idx]
-            last = (i == len(values) - 1)
-            r = 3.5 if last else 2
-            cls = "dot dot-current pt" if last else "dot pt"
-            svg.append(
-                f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" class="{cls}" data-week="{i}" tabindex="0">'
-                f'<title>{week_labels[i]}: {fmt(v, decimals)}</title></circle>'
-            )
-
-    first_i = pts[0][0]
-    last_i = pts[-1][0]
-    svg.append(f'<text x="{x_of(first_i):.1f}" y="{H - 4}" class="spark-tick" text-anchor="start">{week_labels[first_i]}</text>')
-    svg.append(f'<text x="{x_of(last_i):.1f}" y="{H - 4}" class="spark-tick" text-anchor="end">{week_labels[last_i]}</text>')
-
-    svg.append("</svg>")
-    return "".join(svg)
-
-
-def card_skeleton(slug, title, unit_label, chart_svg):
+def card_skeleton(slug, title, unit_label):
+    """Chart is rendered client-side by buildChart() so it can page through history."""
     return f'''
     <div class="card">
       <div class="card-head">
@@ -598,55 +532,9 @@ def card_skeleton(slug, title, unit_label, chart_svg):
         <span class="delta" id="{slug}-badge"></span>
       </div>
       <div class="card-value"><span id="{slug}-value">–</span><span class="card-unit">{unit_label}</span></div>
-      {chart_svg}
+      <div id="{slug}-chart"></div>
     </div>'''
 
-
-SLEEP_STAGES = [("deep", "deep_sleep_h"), ("light", "light_sleep_h"), ("rem", "rem_sleep_h"), ("awake", "awake_h")]
-
-
-def sleep_stage_chart(weeks: list, week_labels: list) -> str:
-    W, H = 280, 84
-    pad_l, pad_r, pad_t, pad_b = 8, 8, 10, 18
-    plot_w = W - pad_l - pad_r
-    plot_h = H - pad_t - pad_b
-    n = len(weeks)
-
-    totals = [sum((w.get(f) or 0) for _, f in SLEEP_STAGES) for w in weeks]
-    has_any = any(t > 0 for t in totals)
-    if not has_any or n < 2:
-        return f'<svg viewBox="0 0 {W} {H}" class="spark"><text x="{W/2}" y="{H/2}" class="spark-empty" text-anchor="middle">Not enough data yet</text></svg>'
-
-    vmax = max(totals) or 1
-    bar_w = plot_w / n * 0.55
-    baseline_y = pad_t + plot_h
-
-    svg = [f'<svg viewBox="0 0 {W} {H}" class="spark" role="img">']
-    svg.append(f'<line x1="{pad_l}" y1="{baseline_y}" x2="{W - pad_r}" y2="{baseline_y}" class="spark-grid" />')
-
-    for i, w in enumerate(weeks):
-        x = pad_l + (i / (n - 1)) * plot_w - bar_w / 2 if n > 1 else pad_l
-        y_cursor = baseline_y
-        last = (i == n - 1)
-        title_bits = ", ".join(f"{name} {w.get(f) or 0:.1f}h" for name, f in SLEEP_STAGES)
-        for name, f in SLEEP_STAGES:
-            v = w.get(f) or 0
-            if v <= 0:
-                continue
-            seg_h = (v / vmax) * plot_h
-            y_cursor -= seg_h
-            cls = f"stage-{name}" + (" selected" if last else "")
-            svg.append(
-                f'<rect x="{x:.1f}" y="{y_cursor:.1f}" width="{bar_w:.1f}" height="{seg_h:.1f}" '
-                f'class="{cls} pt" data-week="{i}" tabindex="0"><title>{week_labels[i]}: {title_bits}</title></rect>'
-            )
-
-    first_label = week_labels[0]
-    last_label = week_labels[-1]
-    svg.append(f'<text x="{pad_l}" y="{H - 4}" class="spark-tick" text-anchor="start">{first_label}</text>')
-    svg.append(f'<text x="{W - pad_r}" y="{H - 4}" class="spark-tick" text-anchor="end">{last_label}</text>')
-    svg.append("</svg>")
-    return "".join(svg)
 
 
 def static_line_chart(values, labels, decimals=0):
@@ -755,7 +643,16 @@ def render_index(data: dict, weeks: list) -> str:
     return page_shell("index.html", "Overview", f"Week of {subtitle}" if subtitle else "", body)
 
 
-def render_script(weeks: list, metrics: list, include_race_predictor: bool, include_activities: bool, extra_js: str = "") -> str:
+def chart_nav_html() -> str:
+    return '''
+  <div class="chart-nav">
+    <button id="chart-earlier" class="navbtn" type="button">&larr; Earlier</button>
+    <span id="chart-range" class="chart-range"></span>
+    <button id="chart-later" class="navbtn" type="button">Later &rarr;</button>
+  </div>'''
+
+
+def render_script(weeks: list, metrics: list, include_race_predictor: bool, include_activities: bool, extra_js: str = "", include_stage_chart: bool = False) -> str:
     weeks_json = json.dumps(weeks).replace("</", "<\\/")
     metrics_json = json.dumps(metrics)
 
@@ -786,6 +683,10 @@ def render_script(weeks: list, metrics: list, include_race_predictor: bool, incl
         }).join('');
       }
     }""" if include_activities else ""
+
+    stage_chart_js = """
+    var stageEl = document.getElementById('stage-chart');
+    if (stageEl) stageEl.innerHTML = buildStageChart();""" if include_stage_chart else ""
 
     return f"""<script id="weeks-data" type="application/json">{weeks_json}</script>
 <script>
@@ -838,6 +739,145 @@ def render_script(weeks: list, metrics: list, include_race_predictor: bool, incl
     return {{ cls: good ? 'good' : 'bad', text: arrow + ' ' + Math.abs(pct).toFixed(0) + '%' }};
   }}
 
+  var WINDOW_WEEKS = 13;
+  var totalPages = Math.max(1, Math.ceil(WEEKS.length / WINDOW_WEEKS));
+  var page = 0;
+
+  function windowBounds() {{
+    var end = Math.max(0, WEEKS.length - page * WINDOW_WEEKS);
+    var start = Math.max(0, end - WINDOW_WEEKS);
+    return {{ start: start, end: end }};
+  }}
+
+  function buildChart(field, decimals, kind, statusField) {{
+    var w = windowBounds();
+    var W = 280, H = 84, padL = 8, padR = 8, padT = 10, padB = 18;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var globalLast = WEEKS.length - 1;
+    var n = w.end - w.start;
+
+    var pts = [];
+    for (var i = 0; i < n; i++) {{
+      var v = WEEKS[w.start + i][field];
+      if (v !== null && v !== undefined) pts.push([i, v]);
+    }}
+    if (pts.length < 2 || n < 2) {{
+      return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="spark"><text x="' + (W / 2) + '" y="' + (H / 2) + '" class="spark-empty" text-anchor="middle">Not enough data yet</text></svg>';
+    }}
+
+    var vmin = pts[0][1], vmax = pts[0][1];
+    pts.forEach(function (p) {{ if (p[1] < vmin) vmin = p[1]; if (p[1] > vmax) vmax = p[1]; }});
+    if (vmax === vmin) vmax = vmin + 1;
+
+    function xOf(i) {{ return n > 1 ? padL + (i / (n - 1)) * plotW : padL; }}
+    function yOf(v) {{ return padT + plotH - ((v - vmin) / (vmax - vmin)) * plotH; }}
+    var baselineY = padT + plotH;
+    var svg = ['<svg viewBox="0 0 ' + W + ' ' + H + '" class="spark" role="img">'];
+    svg.push('<line x1="' + padL + '" y1="' + baselineY + '" x2="' + (W - padR) + '" y2="' + baselineY + '" class="spark-grid" />');
+
+    function label(i) {{ return WEEKS[w.start + i].week_label; }}
+    function valText(v) {{ return fmtNum(v, decimals); }}
+
+    if (kind === 'bar') {{
+      var barW = plotW / n * 0.55;
+      for (var i = 0; i < n; i++) {{
+        var v = WEEKS[w.start + i][field];
+        if (v === null || v === undefined) continue;
+        var x = xOf(i) - barW / 2, y = yOf(v), h = baselineY - y;
+        var isLast = (w.start + i === globalLast);
+        var isSel = (w.start + i === selected);
+        var cls = 'bar pt' + (isLast ? ' bar-current' : '') + (isSel ? ' selected' : '');
+        svg.push('<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="2" class="' + cls + '" data-week="' + (w.start + i) + '" tabindex="0"><title>' + label(i) + ': ' + valText(v) + '</title></rect>');
+      }}
+    }} else {{
+      var pathPts = pts.map(function (p) {{ return [xOf(p[0]), yOf(p[1])]; }});
+      var lineD = 'M ' + pathPts.map(function (p) {{ return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }}).join(' L ');
+      var areaD = lineD + ' L ' + pathPts[pathPts.length - 1][0].toFixed(1) + ' ' + baselineY + ' L ' + pathPts[0][0].toFixed(1) + ' ' + baselineY + ' Z';
+      svg.push('<path d="' + areaD + '" class="spark-area" />');
+      svg.push('<path d="' + lineD + '" class="spark-line" />');
+      for (var idx = 0; idx < pts.length; idx++) {{
+        var i = pts[idx][0], v = pts[idx][1];
+        var x = pathPts[idx][0], y = pathPts[idx][1];
+        var isLast = (w.start + i === globalLast);
+        var isSel = (w.start + i === selected);
+        var r = isLast ? 3.5 : 2;
+        var cls = 'dot pt' + (isLast ? ' dot-current' : '') + (isSel ? ' selected' : '');
+        svg.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + r + '" class="' + cls + '" data-week="' + (w.start + i) + '" tabindex="0"><title>' + label(i) + ': ' + valText(v) + '</title></circle>');
+      }}
+    }}
+
+    var firstI = pts[0][0], lastI = pts[pts.length - 1][0];
+    svg.push('<text x="' + xOf(firstI).toFixed(1) + '" y="' + (H - 4) + '" class="spark-tick" text-anchor="start">' + label(firstI) + '</text>');
+    svg.push('<text x="' + xOf(lastI).toFixed(1) + '" y="' + (H - 4) + '" class="spark-tick" text-anchor="end">' + label(lastI) + '</text>');
+    svg.push('</svg>');
+    return svg.join('');
+  }}
+
+  var SLEEP_STAGES = [['deep', 'deep_sleep_h'], ['light', 'light_sleep_h'], ['rem', 'rem_sleep_h'], ['awake', 'awake_h']];
+
+  function buildStageChart() {{
+    var w = windowBounds();
+    var W = 280, H = 84, padL = 8, padR = 8, padT = 10, padB = 18;
+    var plotW = W - padL - padR, plotH = H - padT - padB;
+    var globalLast = WEEKS.length - 1;
+    var n = w.end - w.start;
+
+    var totals = [];
+    for (var i = 0; i < n; i++) {{
+      var wk = WEEKS[w.start + i];
+      var t = 0;
+      SLEEP_STAGES.forEach(function (p) {{ t += wk[p[1]] || 0; }});
+      totals.push(t);
+    }}
+    var vmax = 0;
+    totals.forEach(function (t) {{ if (t > vmax) vmax = t; }});
+    if (!vmax || n < 2) {{
+      return '<svg viewBox="0 0 ' + W + ' ' + H + '" class="spark"><text x="' + (W / 2) + '" y="' + (H / 2) + '" class="spark-empty" text-anchor="middle">Not enough data yet</text></svg>';
+    }}
+
+    var barW = plotW / n * 0.55;
+    var baselineY = padT + plotH;
+    var svg = ['<svg viewBox="0 0 ' + W + ' ' + H + '" class="spark" role="img">'];
+    svg.push('<line x1="' + padL + '" y1="' + baselineY + '" x2="' + (W - padR) + '" y2="' + baselineY + '" class="spark-grid" />');
+
+    for (var i = 0; i < n; i++) {{
+      var wk = WEEKS[w.start + i];
+      var x = (n > 1 ? padL + (i / (n - 1)) * plotW : padL) - barW / 2;
+      var yCursor = baselineY;
+      var isSel = (w.start + i === selected);
+      var titleBits = SLEEP_STAGES.map(function (p) {{ return p[0] + ' ' + (wk[p[1]] || 0).toFixed(1) + 'h'; }}).join(', ');
+      SLEEP_STAGES.forEach(function (p) {{
+        var v = wk[p[1]] || 0;
+        if (v <= 0) return;
+        var segH = (v / vmax) * plotH;
+        yCursor -= segH;
+        var cls = 'stage-' + p[0] + ' pt' + (isSel ? ' selected' : '');
+        svg.push('<rect x="' + x.toFixed(1) + '" y="' + yCursor.toFixed(1) + '" width="' + barW.toFixed(1) + '" height="' + segH.toFixed(1) + '" class="' + cls + '" data-week="' + (w.start + i) + '" tabindex="0"><title>' + WEEKS[w.start + i].week_label + ': ' + titleBits + '</title></rect>');
+      }});
+    }}
+
+    svg.push('<text x="' + padL + '" y="' + (H - 4) + '" class="spark-tick" text-anchor="start">' + WEEKS[w.start].week_label + '</text>');
+    svg.push('<text x="' + (W - padR) + '" y="' + (H - 4) + '" class="spark-tick" text-anchor="end">' + WEEKS[w.end - 1].week_label + '</text>');
+    svg.push('</svg>');
+    return svg.join('');
+  }}
+
+  function renderCharts() {{
+    var w = windowBounds();
+    METRICS.forEach(function (m) {{
+      var el = document.getElementById(m.slug + '-chart');
+      if (el) el.innerHTML = buildChart(m.field, m.decimals, m.kind, m.statusField);
+    }});
+    {stage_chart_js}
+
+    var rangeEl = document.getElementById('chart-range');
+    if (rangeEl) rangeEl.textContent = WEEKS[w.start].week_label + ' \\u2013 ' + WEEKS[w.end - 1].week_label;
+    var earlierBtn = document.getElementById('chart-earlier');
+    var laterBtn = document.getElementById('chart-later');
+    if (earlierBtn) earlierBtn.disabled = (w.start === 0);
+    if (laterBtn) laterBtn.disabled = (page === 0);
+  }}
+
   function render(i) {{
     selected = i;
     var week = WEEKS[i];
@@ -885,34 +925,40 @@ def render_script(weeks: list, metrics: list, include_race_predictor: bool, incl
     if (!isNaN(idx)) render(idx);
   }});
 
+  var earlierBtn = document.getElementById('chart-earlier');
+  var laterBtn = document.getElementById('chart-later');
+  if (earlierBtn) earlierBtn.addEventListener('click', function () {{
+    if (page < totalPages - 1) {{ page++; renderCharts(); }}
+  }});
+  if (laterBtn) laterBtn.addEventListener('click', function () {{
+    if (page > 0) {{ page--; renderCharts(); }}
+  }});
+
+  renderCharts();
   if (WEEKS.length) render(selected);
 }})();
 </script>"""
 
 
 def render_training(data: dict, weeks: list) -> str:
-    week_labels = [w["week_label"] for w in weeks]
-
-    def series(field):
-        return [w[field] for w in weeks]
-
     cards = "".join([
-        card_skeleton("volume", "Weekly Volume", "mi", sparkline(series("volume_mi"), week_labels, 1, "bar")),
-        card_skeleton("vert", "Total Vert", "ft", sparkline(series("vert_ft"), week_labels, 0, "bar")),
-        card_skeleton("hr", "Avg Heart Rate", "bpm", sparkline(series("avg_hr"), week_labels, 0, "line")),
-        card_skeleton("vo2max", "VO2 Max", "", sparkline(series("vo2max"), week_labels, 1, "line")),
-        card_skeleton("acwr", "Training Load (ACWR)", "", sparkline(series("acwr_ratio"), week_labels, 2, "line")),
+        card_skeleton("volume", "Weekly Volume", "mi"),
+        card_skeleton("vert", "Total Vert", "ft"),
+        card_skeleton("hr", "Avg Heart Rate", "bpm"),
+        card_skeleton("vo2max", "VO2 Max", ""),
+        card_skeleton("acwr", "Training Load (ACWR)", ""),
     ])
 
     metrics = [
-        {"slug": "volume", "field": "volume_mi", "decimals": 1, "higherBetter": True},
-        {"slug": "vert", "field": "vert_ft", "decimals": 0, "higherBetter": True},
-        {"slug": "hr", "field": "avg_hr", "decimals": 0, "higherBetter": False},
-        {"slug": "vo2max", "field": "vo2max", "decimals": 1, "higherBetter": True},
-        {"slug": "acwr", "field": "acwr_ratio", "decimals": 2, "statusField": "acwr_status"},
+        {"slug": "volume", "field": "volume_mi", "decimals": 1, "higherBetter": True, "kind": "bar"},
+        {"slug": "vert", "field": "vert_ft", "decimals": 0, "higherBetter": True, "kind": "bar"},
+        {"slug": "hr", "field": "avg_hr", "decimals": 0, "higherBetter": False, "kind": "line"},
+        {"slug": "vo2max", "field": "vo2max", "decimals": 1, "higherBetter": True, "kind": "line"},
+        {"slug": "acwr", "field": "acwr_ratio", "decimals": 2, "statusField": "acwr_status", "kind": "line"},
     ]
 
     body = f'''
+  {chart_nav_html()}
   <div class="card-grid single-col side-training">{cards}</div>
 
   <div class="race-panel">
@@ -941,23 +987,18 @@ def render_training(data: dict, weeks: list) -> str:
 
 
 def render_recovery(data: dict, weeks: list) -> str:
-    week_labels = [w["week_label"] for w in weeks]
-
-    def series(field):
-        return [w[field] for w in weeks]
-
     cards = "".join([
-        card_skeleton("sleep", "Sleep", "h", sparkline(series("sleep_h"), week_labels, 1, "line")),
-        card_skeleton("rhr", "Resting HR", "bpm", sparkline(series("resting_hr"), week_labels, 0, "line")),
-        card_skeleton("hrv", "HRV", "ms", sparkline(series("hrv_ms"), week_labels, 0, "line")),
-        card_skeleton("readiness", "Training Readiness", "", sparkline(series("readiness"), week_labels, 0, "line")),
-        card_skeleton("battery", "Body Battery (peak)", "", sparkline(series("body_battery_high"), week_labels, 0, "line")),
-        card_skeleton("naps", "Naps", "min", sparkline(series("nap_minutes"), week_labels, 0, "bar")),
-        card_skeleton("spo2", "SpO2", "%", sparkline(series("avg_spo2"), week_labels, 0, "line")),
-        card_skeleton("respiration", "Respiration", "brpm", sparkline(series("avg_respiration"), week_labels, 1, "line")),
+        card_skeleton("sleep", "Sleep", "h"),
+        card_skeleton("rhr", "Resting HR", "bpm"),
+        card_skeleton("hrv", "HRV", "ms"),
+        card_skeleton("readiness", "Training Readiness", ""),
+        card_skeleton("battery", "Body Battery (peak)", ""),
+        card_skeleton("naps", "Naps", "min"),
+        card_skeleton("spo2", "SpO2", "%"),
+        card_skeleton("respiration", "Respiration", "brpm"),
     ])
 
-    sleep_stage_card = f'''
+    sleep_stage_card = '''
     <div class="card wide">
       <div class="card-head"><span class="card-title">Sleep Stages</span></div>
       <div class="stage-legend">
@@ -966,12 +1007,12 @@ def render_recovery(data: dict, weeks: list) -> str:
         <span><i class="swatch stage-rem"></i>REM <b id="stage-rem-value">–</b></span>
         <span><i class="swatch stage-awake"></i>Awake <b id="stage-awake-value">–</b></span>
       </div>
-      {sleep_stage_chart(weeks, week_labels)}
+      <div id="stage-chart"></div>
     </div>'''
 
     stress_dates = [row["date"] for row in weekly_stress_series(data)]
     stress_values = [row["value"] for row in weekly_stress_series(data)]
-    stress_labels = [f"{MONTH_ABBR[datetime.strptime(d, '%Y-%m-%d').month - 1]} {datetime.strptime(d, '%Y-%m-%d').day}" for d in stress_dates]
+    stress_labels = [f"{MONTH_ABBR[datetime.strptime(d, '%Y-%m-%d').month - 1]} {datetime.strptime(d, '%Y-%m-%d').day} '{d[2:4]}" for d in stress_dates]
     stress_section = ""
     if stress_values:
         stress_section = f'''
@@ -981,14 +1022,14 @@ def render_recovery(data: dict, weeks: list) -> str:
   </div>'''
 
     metrics = [
-        {"slug": "sleep", "field": "sleep_h", "decimals": 1, "higherBetter": True},
-        {"slug": "rhr", "field": "resting_hr", "decimals": 0, "higherBetter": False},
-        {"slug": "hrv", "field": "hrv_ms", "decimals": 0, "higherBetter": True},
-        {"slug": "readiness", "field": "readiness", "decimals": 0, "higherBetter": True},
-        {"slug": "battery", "field": "body_battery_high", "decimals": 0, "higherBetter": True},
-        {"slug": "naps", "field": "nap_minutes", "decimals": 0, "higherBetter": True},
-        {"slug": "spo2", "field": "avg_spo2", "decimals": 0, "higherBetter": True},
-        {"slug": "respiration", "field": "avg_respiration", "decimals": 1, "higherBetter": False},
+        {"slug": "sleep", "field": "sleep_h", "decimals": 1, "higherBetter": True, "kind": "line"},
+        {"slug": "rhr", "field": "resting_hr", "decimals": 0, "higherBetter": False, "kind": "line"},
+        {"slug": "hrv", "field": "hrv_ms", "decimals": 0, "higherBetter": True, "kind": "line"},
+        {"slug": "readiness", "field": "readiness", "decimals": 0, "higherBetter": True, "kind": "line"},
+        {"slug": "battery", "field": "body_battery_high", "decimals": 0, "higherBetter": True, "kind": "line"},
+        {"slug": "naps", "field": "nap_minutes", "decimals": 0, "higherBetter": True, "kind": "bar"},
+        {"slug": "spo2", "field": "avg_spo2", "decimals": 0, "higherBetter": True, "kind": "line"},
+        {"slug": "respiration", "field": "avg_respiration", "decimals": 1, "higherBetter": False, "kind": "line"},
     ]
 
     stage_js = """
@@ -1001,9 +1042,10 @@ def render_recovery(data: dict, weeks: list) -> str:
     });"""
 
     body = f'''
+  {chart_nav_html()}
   <div class="card-grid single-col side-recovery">{cards}{sleep_stage_card}</div>
   {stress_section}
-  {render_script(weeks, metrics, include_race_predictor=False, include_activities=False, extra_js=stage_js)}'''
+  {render_script(weeks, metrics, include_race_predictor=False, include_activities=False, extra_js=stage_js, include_stage_chart=True)}'''
 
     subtitle_id = '<span id="week-note"></span>'
     return page_shell("recovery.html", "Recovery", subtitle_id, body)
@@ -1391,6 +1433,22 @@ CSS = """
   rect.stage-light { fill: color-mix(in srgb, var(--recovery) 55%, var(--surface-2)); }
   rect.stage-rem { fill: var(--training); }
   rect.stage-awake { fill: var(--border); }
+
+  .chart-nav {
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    margin-bottom: 18px;
+  }
+  .navbtn {
+    background: var(--surface); border: 1px solid var(--border); color: var(--ink);
+    font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 20px;
+    cursor: pointer; font-family: inherit;
+  }
+  .navbtn:hover:not(:disabled) { border-color: var(--training); }
+  .navbtn:disabled { opacity: 0.35; cursor: default; }
+  .chart-range {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 12.5px; color: var(--ink-muted); min-width: 160px; text-align: center;
+  }
 </style>
 """
 
