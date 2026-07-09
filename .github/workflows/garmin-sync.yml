@@ -24,10 +24,12 @@ jobs:
 
       - run: python sync_garmin.py --days 3 --out garmin
 
+      - run: python build_dashboard.py
+
       - name: Commit updated data
         run: |
           git config user.name "garmin-sync-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add garmin/
-          git diff --cached --quiet || git commit -m "Sync Garmin data"
+          git add garmin/ docs/
+          git diff --cached --quiet || git commit -m "Sync Garmin data and rebuild dashboard"
           git push
