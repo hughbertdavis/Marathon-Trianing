@@ -32,9 +32,23 @@ def load_data() -> dict:
     return json.loads(DATA_PATH.read_text(encoding="utf-8"))
 
 
+def grade_adjusted_pace(pace_s_per_mi, distance_m, elevation_gain_m):
+    """Approximate GAP: normalizes uphill effort to an equivalent flat-ground pace.
+
+    Rule of thumb (~3.3% pace cost per 1% average grade), using net gain over
+    distance as the average grade since per-segment grade data isn't available.
+    """
+    if not pace_s_per_mi or not distance_m or not elevation_gain_m:
+        return pace_s_per_mi
+    grade_pct = (elevation_gain_m / distance_m) * 100
+    factor = 1 + 0.033 * grade_pct
+    return pace_s_per_mi / factor if factor > 0 else pace_s_per_mi
+
+
 def activity_summary(a: dict) -> dict:
     distance_m = a.get("distance_m")
     duration_s = a.get("duration_s")
+    elevation_gain_m = a.get("elevation_gain_m")
     pace_s_per_mi = None
     if distance_m and duration_s:
         miles = distance_m / METERS_PER_MILE
@@ -47,10 +61,11 @@ def activity_summary(a: dict) -> dict:
         "date": a.get("date"),
         "distance_mi": (distance_m / METERS_PER_MILE) if distance_m else None,
         "duration_s": duration_s,
-        "elevation_ft": (a.get("elevation_gain_m") / METERS_PER_FOOT) if a.get("elevation_gain_m") else None,
+        "elevation_ft": (elevation_gain_m / METERS_PER_FOOT) if elevation_gain_m else None,
         "avg_hr": a.get("avg_hr"),
         "calories": a.get("calories"),
         "pace_s_per_mi": pace_s_per_mi,
+        "gap_s_per_mi": grade_adjusted_pace(pace_s_per_mi, distance_m, elevation_gain_m),
     }
 
 
@@ -88,6 +103,13 @@ def bucket_weeks(data: dict) -> list:
         vals = [x[field] for x in items if x.get(field) is not None]
         return (sum(vals) / len(vals)) if vals else None
 
+    def latest(items, field):
+        ordered = sorted(items, key=lambda x: x.get("date") or "")
+        for x in reversed(ordered):
+            if x.get(field) is not None:
+                return x[field]
+        return None
+
     result = []
     today = date.today()
     for w in weeks:
@@ -119,6 +141,10 @@ def bucket_weeks(data: dict) -> list:
             "race_10k": avg(wel, "race_10k_s"),
             "race_half": avg(wel, "race_half_s"),
             "race_marathon": avg(wel, "race_marathon_s"),
+            "training_status": latest(wel, "training_status"),
+            "acwr_ratio": avg(wel, "acwr_ratio"),
+            "acwr_status": latest(wel, "acwr_status"),
+            "fitness_age": latest(wel, "fitness_age"),
             "n_activities": len(acts),
             "n_days_logged": len(wel),
             "activities": [activity_summary(a) for a in acts],
@@ -126,10 +152,325 @@ def bucket_weeks(data: dict) -> list:
     return result
 
 
+PR_BUCKETS = [
+    ("5K", 4800, 5300),
+    ("10K", 9600, 10600),
+    ("Half Marathon", 20600, 21700),
+    ("Marathon", 41500, 42800),
+]
+
+
+def compute_personal_records(data: dict) -> dict:
+    activities = list(data.get("activities", {}).values())
+
+    records = {}
+    for label, lo, hi in PR_BUCKETS:
+        candidates = [a for a in activities if a.get("distance_m") and lo <= a["distance_m"] <= hi and a.get("duration_s")]
+        if candidates:
+            best = min(candidates, key=lambda a: a["duration_s"])
+            records[label] = {"duration_s": best["duration_s"], "date": best.get("date"), "name": best.get("name")}
+        else:
+            records[label] = None
+
+    longest = max(
+        (a for a in activities if a.get("distance_m")),
+        key=lambda a: a["distance_m"],
+        default=None,
+    )
+    most_vert = max(
+        (a for a in activities if a.get("elevation_gain_m")),
+        key=lambda a: a["elevation_gain_m"],
+        default=None,
+    )
+
+    return {
+        "races": records,
+        "longest_run": {
+            "distance_mi": longest["distance_m"] / METERS_PER_MILE,
+            "date": longest.get("date"),
+            "name": longest.get("name"),
+        } if longest else None,
+        "most_vert": {
+            "elevation_ft": most_vert["elevation_gain_m"] / METERS_PER_FOOT,
+            "date": most_vert.get("date"),
+            "name": most_vert.get("name"),
+        } if most_vert else None,
+    }
+
+
+def compute_streaks(data: dict) -> dict:
+    activities = list(data.get("activities", {}).values())
+    active_days = sorted({a["date"] for a in activities if a.get("date")})
+    if not active_days:
+        return {"current": 0, "best": 0}
+
+    parsed = [datetime.strptime(d, "%Y-%m-%d").date() for d in active_days]
+    day_set = set(parsed)
+
+    best = 1
+    run = 1
+    for i in range(1, len(parsed)):
+        if (parsed[i] - parsed[i - 1]).days == 1:
+            run += 1
+            best = max(best, run)
+        else:
+            run = 1
+
+    today = date.today()
+    current = 0
+    cursor = today
+    if cursor not in day_set:
+        cursor -= timedelta(days=1)
+    while cursor in day_set:
+        current += 1
+        cursor -= timedelta(days=1)
+
+    return {"current": current, "best": best}
+
+
+def compute_heatmap(data: dict) -> list:
+    activities = list(data.get("activities", {}).values())
+    by_day = defaultdict(float)
+    for a in activities:
+        if a.get("date") and a.get("distance_m"):
+            by_day[a["date"]] += a["distance_m"] / METERS_PER_MILE
+
+    if not by_day:
+        return []
+
+    all_days = sorted(by_day.keys())
+    start = datetime.strptime(all_days[0], "%Y-%m-%d").date()
+    start = start - timedelta(days=start.weekday())  # align to Monday
+    end = date.today()
+
+    days = []
+    d = start
+    while d <= end:
+        iso = d.isoformat()
+        days.append({"date": iso, "miles": round(by_day.get(iso, 0.0), 2)})
+        d += timedelta(days=1)
+    return days
+
+
 def fmt(v, decimals=0):
     if v is None:
         return "–"
     return f"{v:,.{decimals}f}"
+
+
+def fmt_race(seconds):
+    if seconds is None:
+        return "–"
+    total = int(seconds)
+    h, rem = divmod(total, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+
+def fmt_pace(seconds_per_mile):
+    if not seconds_per_mile:
+        return "–"
+    m, s = divmod(round(seconds_per_mile), 60)
+    return f"{m}:{s:02d}/mi"
+
+
+STATUS_LABELS = {
+    "PEAKING": ("Peaking", "good"),
+    "PRODUCTIVE": ("Productive", "good"),
+    "MAINTAINING": ("Maintaining", "good"),
+    "RECOVERY": ("Recovery", "info"),
+    "RECOVERY_1": ("Recovery", "info"),
+    "OVERREACHING": ("Overreaching", "warn"),
+    "UNPRODUCTIVE": ("Unproductive", "warn"),
+    "DETRAINING": ("Detraining", "warn"),
+    "NO_STATUS": ("No Status", "info"),
+}
+
+
+def status_pill(raw_status):
+    if not raw_status:
+        return "–", "info"
+    key = raw_status.upper()
+    if key in STATUS_LABELS:
+        return STATUS_LABELS[key]
+    label = raw_status.replace("_", " ").title()
+    return label, "info"
+
+
+def acwr_pill(status):
+    if not status:
+        return "info"
+    key = status.upper()
+    if key == "HIGH":
+        return "bad"
+    if key == "LOW":
+        return "warn"
+    return "good"
+
+
+def build_race_countdown(weeks: list) -> str:
+    goal_path = HERE / "race_goal.json"
+    if not goal_path.exists():
+        return ""
+    goal = json.loads(goal_path.read_text(encoding="utf-8"))
+
+    race_date = datetime.strptime(goal["date"], "%Y-%m-%d").date()
+    days_left = (race_date - date.today()).days
+    marathon_miles = 26.2188
+    goal_pace = goal["goal_seconds"] / marathon_miles
+
+    latest_predicted = None
+    for w in reversed(weeks):
+        if w.get("race_marathon") is not None:
+            latest_predicted = w["race_marathon"]
+            break
+
+    delta_html = ""
+    if latest_predicted is not None:
+        diff = latest_predicted - goal["goal_seconds"]
+        if abs(diff) < 30:
+            delta_html = '<span class="delta flat">on pace</span>'
+        elif diff > 0:
+            delta_html = f'<span class="delta bad">{fmt_race(diff)} slower than goal</span>'
+        else:
+            delta_html = f'<span class="delta good">{fmt_race(abs(diff))} faster than goal</span>'
+
+    when = f"{MONTH_ABBR[race_date.month - 1]} {race_date.day}, {race_date.year}"
+    days_label = f"{days_left} days" if days_left >= 0 else "Race day has passed"
+
+    return f'''
+  <div class="race-countdown">
+    <div class="countdown-main">
+      <div class="countdown-days">{days_label}</div>
+      <div class="countdown-sub">until {goal['name']} - {when}</div>
+    </div>
+    <div class="countdown-stats">
+      <div class="countdown-stat">
+        <div class="stat-label">Goal Time</div>
+        <div class="stat-value">{fmt_race(goal['goal_seconds'])}</div>
+      </div>
+      <div class="countdown-stat">
+        <div class="stat-label">Goal Pace</div>
+        <div class="stat-value">{fmt_pace(goal_pace)}</div>
+      </div>
+      <div class="countdown-stat">
+        <div class="stat-label">Current Prediction</div>
+        <div class="stat-value">{fmt_race(latest_predicted)} {delta_html}</div>
+      </div>
+    </div>
+  </div>'''
+
+
+def build_personal_records(data: dict) -> str:
+    pr = compute_personal_records(data)
+    items = []
+    for label, _, _ in PR_BUCKETS:
+        rec = pr["races"].get(label)
+        if rec:
+            items.append(f'''
+      <div class="pr-item">
+        <div class="pr-label">{label}</div>
+        <div class="pr-value">{fmt_race(rec["duration_s"])}</div>
+        <div class="pr-date">{rec.get("date") or ""}</div>
+      </div>''')
+    if pr["longest_run"]:
+        lr = pr["longest_run"]
+        items.append(f'''
+      <div class="pr-item">
+        <div class="pr-label">Longest Run</div>
+        <div class="pr-value">{fmt(lr["distance_mi"], 1)} mi</div>
+        <div class="pr-date">{lr.get("date") or ""}</div>
+      </div>''')
+    if pr["most_vert"]:
+        mv = pr["most_vert"]
+        items.append(f'''
+      <div class="pr-item">
+        <div class="pr-label">Most Vert (1 activity)</div>
+        <div class="pr-value">{fmt(mv["elevation_ft"], 0)} ft</div>
+        <div class="pr-date">{mv.get("date") or ""}</div>
+      </div>''')
+
+    if not items:
+        return ""
+    return f'''
+  <div class="pr-panel">
+    <h2>Personal Records</h2>
+    <div class="pr-grid">{"".join(items)}</div>
+  </div>'''
+
+
+def build_fitness_facts(data: dict, weeks: list) -> str:
+    profile = data.get("profile", {}) or {}
+    streak = compute_streaks(data)
+    cur_week = weeks[-1] if weeks else {}
+    status_label, status_cls = status_pill(cur_week.get("training_status"))
+
+    facts = [f'''
+      <div class="fact-item">
+        <div class="fact-label">Training Status</div>
+        <div class="fact-value"><span class="pill pill-{status_cls}">{status_label}</span></div>
+      </div>''']
+
+    if profile.get("lactate_threshold_hr"):
+        facts.append(f'''
+      <div class="fact-item">
+        <div class="fact-label">Lactate Threshold</div>
+        <div class="fact-value">{profile["lactate_threshold_hr"]} bpm</div>
+      </div>''')
+
+    fitness_age = cur_week.get("fitness_age")
+    if fitness_age is not None:
+        facts.append(f'''
+      <div class="fact-item">
+        <div class="fact-label">Fitness Age</div>
+        <div class="fact-value">{fmt(fitness_age, 0)}</div>
+      </div>''')
+
+    facts.append(f'''
+      <div class="fact-item">
+        <div class="fact-label">Active-Day Streak</div>
+        <div class="fact-value">{streak["current"]} days <span class="fact-sub">(best {streak["best"]})</span></div>
+      </div>''')
+
+    for g in profile.get("gear") or []:
+        if not g.get("total_distance_m"):
+            continue
+        facts.append(f'''
+      <div class="fact-item">
+        <div class="fact-label">{g["name"]}</div>
+        <div class="fact-value">{fmt(g["total_distance_m"] / METERS_PER_MILE, 0)} mi <span class="fact-sub">({g["total_activities"]} activities)</span></div>
+      </div>''')
+
+    return f'''
+  <div class="fitness-panel">
+    <h2>Fitness Facts</h2>
+    <div class="fact-grid">{"".join(facts)}</div>
+  </div>'''
+
+
+def build_heatmap(data: dict) -> str:
+    days = compute_heatmap(data)
+    if not days:
+        return ""
+
+    max_miles = max((d["miles"] for d in days), default=0) or 1
+    weeks_cols = [days[i:i + 7] for i in range(0, len(days), 7)]
+
+    cells = []
+    for week in weeks_cols:
+        col = ['<div class="heat-col">']
+        for d in week:
+            intensity = min(d["miles"] / max_miles, 1.0) if d["miles"] else 0
+            level = 0 if intensity == 0 else max(1, min(4, int(intensity * 4) + 1))
+            col.append(f'<div class="heat-cell heat-{level}" title="{d["date"]}: {d["miles"]:.1f} mi"></div>')
+        col.append("</div>")
+        cells.append("".join(col))
+
+    return f'''
+  <div class="heatmap-panel">
+    <h2>Training Block</h2>
+    <div class="heatmap-grid">{"".join(cells)}</div>
+  </div>'''
 
 
 def sparkline(values, week_labels, decimals=0, kind="line"):
@@ -211,7 +552,7 @@ def card_skeleton(slug, title, unit_label, chart_svg):
     </div>'''
 
 
-def build_html(weeks: list) -> str:
+def build_html(data: dict, weeks: list) -> str:
     week_labels = [w["week_label"] for w in weeks]
 
     def series(field):
@@ -222,6 +563,7 @@ def build_html(weeks: list) -> str:
         card_skeleton("vert", "Total Vert", "ft", sparkline(series("vert_ft"), week_labels, 0, "bar")),
         card_skeleton("hr", "Avg Heart Rate", "bpm", sparkline(series("avg_hr"), week_labels, 0, "line")),
         card_skeleton("vo2max", "VO2 Max", "", sparkline(series("vo2max"), week_labels, 1, "line")),
+        card_skeleton("acwr", "Training Load (ACWR)", "", sparkline(series("acwr_ratio"), week_labels, 2, "line")),
     ])
     recovery_cards = "".join([
         card_skeleton("sleep", "Sleep", "h", sparkline(series("sleep_h"), week_labels, 1, "line")),
@@ -240,6 +582,10 @@ def build_html(weeks: list) -> str:
         .replace("{{generated}}", generated)
         .replace("{{training_cards}}", training_cards)
         .replace("{{recovery_cards}}", recovery_cards)
+        .replace("{{race_countdown}}", build_race_countdown(weeks))
+        .replace("{{personal_records}}", build_personal_records(data))
+        .replace("{{fitness_facts}}", build_fitness_facts(data, weeks))
+        .replace("{{heatmap}}", build_heatmap(data))
         .replace("__WEEKS_JSON__", weeks_json)
     )
 
@@ -259,6 +605,8 @@ CSS = """
     --recovery-soft: rgba(3, 148, 138, 0.14);
     --good: #1f7a4c;
     --bad: #b23b2e;
+    --warn: #a9720f;
+    --info: #45688f;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -267,6 +615,7 @@ CSS = """
       --training: #cc7038; --training-soft: rgba(204, 112, 56, 0.16);
       --recovery: #1f9e96; --recovery-soft: rgba(31, 158, 150, 0.16);
       --good: #4fbf82; --bad: #e2685a;
+      --warn: #e0a83e; --info: #7ea3d1;
     }
   }
   :root[data-theme="dark"] {
@@ -275,6 +624,7 @@ CSS = """
     --training: #cc7038; --training-soft: rgba(204, 112, 56, 0.16);
     --recovery: #1f9e96; --recovery-soft: rgba(31, 158, 150, 0.16);
     --good: #4fbf82; --bad: #e2685a;
+    --warn: #e0a83e; --info: #7ea3d1;
   }
   :root[data-theme="light"] {
     --bg: #eef2f1; --surface: #ffffff; --surface-2: #f5f8f7;
@@ -282,6 +632,7 @@ CSS = """
     --training: #c1652b; --training-soft: rgba(193, 101, 43, 0.14);
     --recovery: #03948a; --recovery-soft: rgba(3, 148, 138, 0.14);
     --good: #1f7a4c; --bad: #b23b2e;
+    --warn: #a9720f; --info: #45688f;
   }
 
   * { box-sizing: border-box; }
@@ -423,6 +774,66 @@ CSS = """
     font-variant-numeric: tabular-nums; flex-wrap: wrap;
   }
   .activities-panel .empty { color: var(--ink-muted); font-size: 13px; margin: 0; }
+  .activity-gap { color: var(--ink-muted); font-size: 11px; }
+
+  .race-countdown {
+    margin-bottom: 24px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 22px; display: flex; justify-content: space-between;
+    align-items: center; flex-wrap: wrap; gap: 16px;
+  }
+  .countdown-days {
+    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    font-size: 30px; font-weight: 600;
+  }
+  .countdown-sub { color: var(--ink-muted); font-size: 13px; margin-top: 2px; }
+  .countdown-stats { display: flex; gap: 28px; flex-wrap: wrap; }
+  .countdown-stat { text-align: center; }
+  .countdown-stat .stat-label {
+    font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .countdown-stat .stat-value {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 18px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums;
+    display: flex; align-items: center; gap: 6px; justify-content: center;
+  }
+
+  .pr-panel, .fitness-panel, .heatmap-panel {
+    margin-top: 20px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 20px;
+  }
+  .pr-panel h2, .fitness-panel h2, .heatmap-panel h2 {
+    font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-muted); margin: 0 0 14px;
+  }
+  .pr-grid, .fact-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px;
+  }
+  .pr-item, .fact-item { text-align: left; }
+  .pr-label, .fact-label {
+    font-size: 11px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .pr-value, .fact-value {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 19px; font-weight: 600; margin-top: 3px; font-variant-numeric: tabular-nums;
+  }
+  .pr-date { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
+  .fact-sub { font-size: 12px; color: var(--ink-muted); font-weight: 500; }
+
+  .pill {
+    display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 14px; font-weight: 600;
+  }
+  .pill-good { color: var(--good); background: color-mix(in srgb, var(--good) 16%, transparent); }
+  .pill-bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 16%, transparent); }
+  .pill-warn { color: var(--warn); background: color-mix(in srgb, var(--warn) 16%, transparent); }
+  .pill-info { color: var(--info); background: color-mix(in srgb, var(--info) 16%, transparent); }
+
+  .heatmap-grid { display: flex; gap: 3px; overflow-x: auto; padding-bottom: 4px; }
+  .heat-col { display: flex; flex-direction: column; gap: 3px; }
+  .heat-cell { width: 11px; height: 11px; border-radius: 2px; background: var(--surface-2); }
+  .heat-1 { background: var(--training-soft); }
+  .heat-2 { background: color-mix(in srgb, var(--training) 45%, var(--surface-2)); }
+  .heat-3 { background: color-mix(in srgb, var(--training) 70%, var(--surface-2)); }
+  .heat-4 { background: var(--training); }
 
   .foot { margin-top: 32px; text-align: center; font-size: 12px; color: var(--ink-muted); }
 </style>
@@ -436,6 +847,8 @@ HTML_TEMPLATE = '<meta charset="UTF-8"><title>Training Dashboard</title>' + CSS 
     </div>
     <div class="topbar-meta">Last updated<br><strong>{{generated}}</strong></div>
   </header>
+
+  {{race_countdown}}
 
   <div class="columns">
     <section class="side side-training">
@@ -463,6 +876,12 @@ HTML_TEMPLATE = '<meta charset="UTF-8"><title>Training Dashboard</title>' + CSS 
     </div>
   </div>
 
+  {{personal_records}}
+
+  {{heatmap}}
+
+  {{fitness_facts}}
+
   <div class="activities-panel">
     <h2>Activities This Week</h2>
     <div id="activities-list"></div>
@@ -484,8 +903,16 @@ HTML_TEMPLATE = '<meta charset="UTF-8"><title>Training Dashboard</title>' + CSS 
     { slug: 'vo2max', field: 'vo2max', decimals: 1, higherBetter: true },
     { slug: 'sleep', field: 'sleep_h', decimals: 1, higherBetter: true },
     { slug: 'hrv', field: 'hrv_ms', decimals: 0, higherBetter: true },
-    { slug: 'readiness', field: 'readiness', decimals: 0, higherBetter: true }
+    { slug: 'readiness', field: 'readiness', decimals: 0, higherBetter: true },
+    { slug: 'acwr', field: 'acwr_ratio', decimals: 2, statusField: 'acwr_status' }
   ];
+
+  function acwrPill(status) {
+    if (!status) return { cls: '', text: '' };
+    var key = status.toUpperCase();
+    var cls = key === 'HIGH' ? 'bad' : key === 'LOW' ? 'warn' : 'good';
+    return { cls: cls, text: key.charAt(0) + key.slice(1).toLowerCase() };
+  }
 
   function fmtNum(v, decimals) {
     if (v === null || v === undefined) return '–';
@@ -540,7 +967,7 @@ HTML_TEMPLATE = '<meta charset="UTF-8"><title>Training Dashboard</title>' + CSS 
       var badgeEl = document.getElementById(m.slug + '-badge');
       if (valEl) valEl.textContent = fmtNum(week[m.field], m.decimals);
       if (badgeEl) {
-        var state = badgeState(week[m.field], prev ? prev[m.field] : null, m.higherBetter, isPartial);
+        var state = m.statusField ? acwrPill(week[m.statusField]) : badgeState(week[m.field], prev ? prev[m.field] : null, m.higherBetter, isPartial);
         badgeEl.className = 'delta' + (state.cls ? ' ' + state.cls : '');
         badgeEl.textContent = state.text;
       }
@@ -570,7 +997,7 @@ HTML_TEMPLATE = '<meta charset="UTF-8"><title>Training Dashboard</title>' + CSS 
             '<span>' + act.date + '</span>' +
             '<span>' + (act.distance_mi != null ? act.distance_mi.toFixed(2) + ' mi' : '–') + '</span>' +
             '<span>' + fmtDuration(act.duration_s) + '</span>' +
-            '<span>' + fmtPace(act.pace_s_per_mi) + '</span>' +
+            '<span>' + fmtPace(act.pace_s_per_mi) + (act.gap_s_per_mi != null && Math.abs(act.gap_s_per_mi - act.pace_s_per_mi) > 1 ? ' <span class="activity-gap">(GAP ' + fmtPace(act.gap_s_per_mi) + ')</span>' : '') + '</span>' +
             '<span>' + (act.elevation_ft != null ? Math.round(act.elevation_ft) + ' ft' : '–') + '</span>' +
             '<span>' + (act.avg_hr != null ? Math.round(act.avg_hr) + ' bpm' : '–') + '</span>' +
             '</div></div>';
@@ -603,7 +1030,7 @@ HTML_TEMPLATE = '<meta charset="UTF-8"><title>Training Dashboard</title>' + CSS 
 def main():
     data = load_data()
     weeks = bucket_weeks(data)
-    body = build_html(weeks)
+    body = build_html(data, weeks)
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(body, encoding="utf-8")
     print(f"Aggregated {len(weeks)} weeks. Dashboard written to {OUT_PATH}")
