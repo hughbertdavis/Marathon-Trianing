@@ -432,14 +432,6 @@ def build_fitness_facts(data: dict, weeks: list) -> str:
         <div class="fact-value">{streak["current"]} days <span class="fact-sub">(best {streak["best"]})</span></div>
       </div>''')
 
-    for g in profile.get("gear") or []:
-        if not g.get("total_distance_m"):
-            continue
-        facts.append(f'''
-      <div class="fact-item">
-        <div class="fact-label">{g["name"]}</div>
-        <div class="fact-value">{fmt(g["total_distance_m"] / METERS_PER_MILE, 0)} mi <span class="fact-sub">({g["total_activities"]} activities)</span></div>
-      </div>''')
 
     return f'''
   <div class="fitness-panel">
