@@ -10,7 +10,12 @@
       "body_battery_high": 79,
       "avg_stress": 24,
       "steps": 5522,
-      "training_readiness": 54
+      "training_readiness": 54,
+      "vo2max": null,
+      "race_5k_s": 984,
+      "race_10k_s": 2074,
+      "race_half_s": 4464,
+      "race_marathon_s": 9238
     },
     "2026-07-08": {
       "date": "2026-07-08",
@@ -22,7 +27,12 @@
       "body_battery_high": 82,
       "avg_stress": 23,
       "steps": 29822,
-      "training_readiness": 50
+      "training_readiness": 50,
+      "vo2max": 64.0,
+      "race_5k_s": 981,
+      "race_10k_s": 2069,
+      "race_half_s": 4461,
+      "race_marathon_s": 9228
     },
     "2026-07-07": {
       "date": "2026-07-07",
@@ -34,7 +44,12 @@
       "body_battery_high": 59,
       "avg_stress": 40,
       "steps": 21345,
-      "training_readiness": 61
+      "training_readiness": 61,
+      "vo2max": 63.0,
+      "race_5k_s": 980,
+      "race_10k_s": 2066,
+      "race_half_s": 4458,
+      "race_marathon_s": 9220
     },
     "2026-07-06": {
       "date": "2026-07-06",
@@ -46,7 +61,12 @@
       "body_battery_high": null,
       "avg_stress": null,
       "steps": null,
-      "training_readiness": null
+      "training_readiness": null,
+      "vo2max": null,
+      "race_5k_s": 980,
+      "race_10k_s": 2065,
+      "race_half_s": 4457,
+      "race_marathon_s": 9215
     },
     "2026-07-05": {
       "date": "2026-07-05",
@@ -58,7 +78,12 @@
       "body_battery_high": null,
       "avg_stress": null,
       "steps": null,
-      "training_readiness": null
+      "training_readiness": null,
+      "vo2max": null,
+      "race_5k_s": 980,
+      "race_10k_s": 2065,
+      "race_half_s": 4455,
+      "race_marathon_s": 9210
     },
     "2026-07-04": {
       "date": "2026-07-04",
@@ -70,7 +95,12 @@
       "body_battery_high": null,
       "avg_stress": null,
       "steps": null,
-      "training_readiness": null
+      "training_readiness": null,
+      "vo2max": null,
+      "race_5k_s": 979,
+      "race_10k_s": 2064,
+      "race_half_s": 4454,
+      "race_marathon_s": 9205
     },
     "2026-07-03": {
       "date": "2026-07-03",
@@ -82,7 +112,12 @@
       "body_battery_high": 90,
       "avg_stress": 21,
       "steps": 4335,
-      "training_readiness": 44
+      "training_readiness": 44,
+      "vo2max": null,
+      "race_5k_s": 979,
+      "race_10k_s": 2064,
+      "race_half_s": 4453,
+      "race_marathon_s": 9200
     },
     "2026-07-02": {
       "date": "2026-07-02",
@@ -94,7 +129,12 @@
       "body_battery_high": 85,
       "avg_stress": 25,
       "steps": 29407,
-      "training_readiness": 51
+      "training_readiness": 51,
+      "vo2max": 65.0,
+      "race_5k_s": 979,
+      "race_10k_s": 2063,
+      "race_half_s": 4451,
+      "race_marathon_s": 9195
     },
     "2026-07-01": {
       "date": "2026-07-01",
@@ -106,7 +146,12 @@
       "body_battery_high": 93,
       "avg_stress": 21,
       "steps": 32593,
-      "training_readiness": 44
+      "training_readiness": 44,
+      "vo2max": 65.0,
+      "race_5k_s": 978,
+      "race_10k_s": 2060,
+      "race_half_s": 4449,
+      "race_marathon_s": 9191
     },
     "2026-06-30": {
       "date": "2026-06-30",
@@ -118,7 +163,12 @@
       "body_battery_high": 97,
       "avg_stress": 28,
       "steps": 26257,
-      "training_readiness": 46
+      "training_readiness": 46,
+      "vo2max": 66.0,
+      "race_5k_s": 976,
+      "race_10k_s": 2056,
+      "race_half_s": 4446,
+      "race_marathon_s": 9186
     },
     "2026-06-29": {
       "date": "2026-06-29",
@@ -130,7 +180,12 @@
       "body_battery_high": 94,
       "avg_stress": 30,
       "steps": 12612,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": null,
+      "race_5k_s": 976,
+      "race_10k_s": 2056,
+      "race_half_s": 4445,
+      "race_marathon_s": 9183
     },
     "2026-06-28": {
       "date": "2026-06-28",
@@ -142,7 +197,12 @@
       "body_battery_high": 58,
       "avg_stress": 25,
       "steps": 27349,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": 66.0,
+      "race_5k_s": 976,
+      "race_10k_s": 2056,
+      "race_half_s": 4444,
+      "race_marathon_s": 9179
     },
     "2026-06-27": {
       "date": "2026-06-27",
@@ -154,7 +214,12 @@
       "body_battery_high": 81,
       "avg_stress": 29,
       "steps": 18198,
-      "training_readiness": 25
+      "training_readiness": 25,
+      "vo2max": null,
+      "race_5k_s": 979,
+      "race_10k_s": 2063,
+      "race_half_s": 4447,
+      "race_marathon_s": 9194
     },
     "2026-06-26": {
       "date": "2026-06-26",
@@ -166,7 +231,12 @@
       "body_battery_high": 87,
       "avg_stress": 23,
       "steps": 31946,
-      "training_readiness": 7
+      "training_readiness": 7,
+      "vo2max": 66.0,
+      "race_5k_s": 979,
+      "race_10k_s": 2061,
+      "race_half_s": 4445,
+      "race_marathon_s": 9187
     },
     "2026-06-25": {
       "date": "2026-06-25",
@@ -178,7 +248,12 @@
       "body_battery_high": 86,
       "avg_stress": 23,
       "steps": 31213,
-      "training_readiness": 3
+      "training_readiness": 3,
+      "vo2max": 67.0,
+      "race_5k_s": 978,
+      "race_10k_s": 2059,
+      "race_half_s": 4443,
+      "race_marathon_s": 9180
     },
     "2026-06-24": {
       "date": "2026-06-24",
@@ -190,7 +265,12 @@
       "body_battery_high": 95,
       "avg_stress": 20,
       "steps": 27450,
-      "training_readiness": 6
+      "training_readiness": 6,
+      "vo2max": 68.0,
+      "race_5k_s": 978,
+      "race_10k_s": 2059,
+      "race_half_s": 4442,
+      "race_marathon_s": 9175
     },
     "2026-06-23": {
       "date": "2026-06-23",
@@ -202,7 +282,12 @@
       "body_battery_high": 94,
       "avg_stress": 27,
       "steps": 35157,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": 62.0,
+      "race_5k_s": 980,
+      "race_10k_s": 2062,
+      "race_half_s": 4442,
+      "race_marathon_s": 9173
     },
     "2026-06-22": {
       "date": "2026-06-22",
@@ -214,7 +299,12 @@
       "body_battery_high": 99,
       "avg_stress": 14,
       "steps": 24995,
-      "training_readiness": 4
+      "training_readiness": 4,
+      "vo2max": 64.0,
+      "race_5k_s": 979,
+      "race_10k_s": 2060,
+      "race_half_s": 4440,
+      "race_marathon_s": 9166
     },
     "2026-06-21": {
       "date": "2026-06-21",
@@ -226,7 +316,12 @@
       "body_battery_high": 77,
       "avg_stress": 23,
       "steps": 29029,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": 62.0,
+      "race_5k_s": 981,
+      "race_10k_s": 2063,
+      "race_half_s": 4441,
+      "race_marathon_s": 9164
     },
     "2026-06-20": {
       "date": "2026-06-20",
@@ -238,7 +333,12 @@
       "body_battery_high": 70,
       "avg_stress": 23,
       "steps": 25523,
-      "training_readiness": 26
+      "training_readiness": 26,
+      "vo2max": 62.0,
+      "race_5k_s": 981,
+      "race_10k_s": 2064,
+      "race_half_s": 4440,
+      "race_marathon_s": 9171
     },
     "2026-06-19": {
       "date": "2026-06-19",
@@ -250,7 +350,12 @@
       "body_battery_high": 75,
       "avg_stress": 28,
       "steps": 23701,
-      "training_readiness": 8
+      "training_readiness": 8,
+      "vo2max": null,
+      "race_5k_s": 981,
+      "race_10k_s": 2064,
+      "race_half_s": 4439,
+      "race_marathon_s": 9166
     },
     "2026-06-18": {
       "date": "2026-06-18",
@@ -262,7 +367,12 @@
       "body_battery_high": 85,
       "avg_stress": 26,
       "steps": 29222,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": 62.0,
+      "race_5k_s": 980,
+      "race_10k_s": 2062,
+      "race_half_s": 4438,
+      "race_marathon_s": 9160
     },
     "2026-06-17": {
       "date": "2026-06-17",
@@ -274,7 +384,12 @@
       "body_battery_high": 84,
       "avg_stress": 28,
       "steps": 26179,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": 64.0,
+      "race_5k_s": 980,
+      "race_10k_s": 2062,
+      "race_half_s": 4437,
+      "race_marathon_s": 9155
     },
     "2026-06-16": {
       "date": "2026-06-16",
@@ -286,7 +401,12 @@
       "body_battery_high": 59,
       "avg_stress": 26,
       "steps": 29572,
-      "training_readiness": 25
+      "training_readiness": 25,
+      "vo2max": 62.0,
+      "race_5k_s": 982,
+      "race_10k_s": 2063,
+      "race_half_s": 4436,
+      "race_marathon_s": 9150
     },
     "2026-06-15": {
       "date": "2026-06-15",
@@ -298,7 +418,12 @@
       "body_battery_high": 69,
       "avg_stress": 31,
       "steps": 24877,
-      "training_readiness": 25
+      "training_readiness": 25,
+      "vo2max": 63.0,
+      "race_5k_s": 982,
+      "race_10k_s": 2063,
+      "race_half_s": 4435,
+      "race_marathon_s": 9145
     },
     "2026-06-14": {
       "date": "2026-06-14",
@@ -310,7 +435,12 @@
       "body_battery_high": 79,
       "avg_stress": 28,
       "steps": 35147,
-      "training_readiness": 4
+      "training_readiness": 4,
+      "vo2max": null,
+      "race_5k_s": 984,
+      "race_10k_s": 2065,
+      "race_half_s": 4434,
+      "race_marathon_s": 9137
     },
     "2026-06-13": {
       "date": "2026-06-13",
@@ -322,7 +452,12 @@
       "body_battery_high": 74,
       "avg_stress": 26,
       "steps": 32517,
-      "training_readiness": 3
+      "training_readiness": 3,
+      "vo2max": 61.0,
+      "race_5k_s": 984,
+      "race_10k_s": 2065,
+      "race_half_s": 4433,
+      "race_marathon_s": 9127
     },
     "2026-06-12": {
       "date": "2026-06-12",
@@ -334,7 +469,12 @@
       "body_battery_high": 88,
       "avg_stress": 37,
       "steps": 31724,
-      "training_readiness": 24
+      "training_readiness": 24,
+      "vo2max": 62.0,
+      "race_5k_s": 987,
+      "race_10k_s": 2070,
+      "race_half_s": 4434,
+      "race_marathon_s": 9126
     },
     "2026-06-11": {
       "date": "2026-06-11",
@@ -346,7 +486,12 @@
       "body_battery_high": 89,
       "avg_stress": 25,
       "steps": 22227,
-      "training_readiness": 30
+      "training_readiness": 30,
+      "vo2max": 62.0,
+      "race_5k_s": 986,
+      "race_10k_s": 2069,
+      "race_half_s": 4433,
+      "race_marathon_s": 9116
     },
     "2026-06-10": {
       "date": "2026-06-10",
@@ -358,7 +503,12 @@
       "body_battery_high": 87,
       "avg_stress": 38,
       "steps": 27518,
-      "training_readiness": 38
+      "training_readiness": 38,
+      "vo2max": 62.0,
+      "race_5k_s": 986,
+      "race_10k_s": 2069,
+      "race_half_s": 4431,
+      "race_marathon_s": 9107
     },
     "2026-06-09": {
       "date": "2026-06-09",
@@ -370,7 +520,12 @@
       "body_battery_high": 72,
       "avg_stress": 23,
       "steps": 8726,
-      "training_readiness": 25
+      "training_readiness": 25,
+      "vo2max": null,
+      "race_5k_s": 989,
+      "race_10k_s": 2071,
+      "race_half_s": 4431,
+      "race_marathon_s": 9101
     },
     "2026-06-08": {
       "date": "2026-06-08",
@@ -382,7 +537,12 @@
       "body_battery_high": 79,
       "avg_stress": 33,
       "steps": 29922,
-      "training_readiness": 4
+      "training_readiness": 4,
+      "vo2max": 63.0,
+      "race_5k_s": 988,
+      "race_10k_s": 2071,
+      "race_half_s": 4430,
+      "race_marathon_s": 9097
     },
     "2026-06-07": {
       "date": "2026-06-07",
@@ -394,7 +554,12 @@
       "body_battery_high": 65,
       "avg_stress": 25,
       "steps": 28978,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": 62.0,
+      "race_5k_s": 987,
+      "race_10k_s": 2069,
+      "race_half_s": 4428,
+      "race_marathon_s": 9091
     },
     "2026-06-06": {
       "date": "2026-06-06",
@@ -406,7 +571,12 @@
       "body_battery_high": 81,
       "avg_stress": 33,
       "steps": 24256,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": null,
+      "race_5k_s": 987,
+      "race_10k_s": 2069,
+      "race_half_s": 4427,
+      "race_marathon_s": 9087
     },
     "2026-06-05": {
       "date": "2026-06-05",
@@ -418,7 +588,12 @@
       "body_battery_high": 77,
       "avg_stress": 36,
       "steps": 24979,
-      "training_readiness": 11
+      "training_readiness": 11,
+      "vo2max": 63.0,
+      "race_5k_s": 987,
+      "race_10k_s": 2069,
+      "race_half_s": 4426,
+      "race_marathon_s": 9082
     },
     "2026-06-04": {
       "date": "2026-06-04",
@@ -430,7 +605,12 @@
       "body_battery_high": 67,
       "avg_stress": 26,
       "steps": 28059,
-      "training_readiness": 6
+      "training_readiness": 6,
+      "vo2max": 64.0,
+      "race_5k_s": 986,
+      "race_10k_s": 2068,
+      "race_half_s": 4425,
+      "race_marathon_s": 9078
     },
     "2026-06-03": {
       "date": "2026-06-03",
@@ -442,7 +622,12 @@
       "body_battery_high": 87,
       "avg_stress": 30,
       "steps": 25958,
-      "training_readiness": 4
+      "training_readiness": 4,
+      "vo2max": 64.0,
+      "race_5k_s": 986,
+      "race_10k_s": 2067,
+      "race_half_s": 4423,
+      "race_marathon_s": 9073
     },
     "2026-06-02": {
       "date": "2026-06-02",
@@ -454,7 +639,12 @@
       "body_battery_high": 76,
       "avg_stress": 25,
       "steps": 20332,
-      "training_readiness": 4
+      "training_readiness": 4,
+      "vo2max": 62.0,
+      "race_5k_s": 988,
+      "race_10k_s": 2069,
+      "race_half_s": 4422,
+      "race_marathon_s": 9069
     },
     "2026-06-01": {
       "date": "2026-06-01",
@@ -466,7 +656,12 @@
       "body_battery_high": 74,
       "avg_stress": 30,
       "steps": 19554,
-      "training_readiness": 4
+      "training_readiness": 4,
+      "vo2max": 63.0,
+      "race_5k_s": 987,
+      "race_10k_s": 2068,
+      "race_half_s": 4421,
+      "race_marathon_s": 9064
     },
     "2026-05-31": {
       "date": "2026-05-31",
@@ -478,7 +673,12 @@
       "body_battery_high": 91,
       "avg_stress": 27,
       "steps": 22225,
-      "training_readiness": 4
+      "training_readiness": 4,
+      "vo2max": 67.0,
+      "race_5k_s": 987,
+      "race_10k_s": 2067,
+      "race_half_s": 4420,
+      "race_marathon_s": 9059
     },
     "2026-05-30": {
       "date": "2026-05-30",
@@ -490,7 +690,12 @@
       "body_battery_high": 52,
       "avg_stress": 26,
       "steps": 14161,
-      "training_readiness": 4
+      "training_readiness": 4,
+      "vo2max": 67.0,
+      "race_5k_s": 989,
+      "race_10k_s": 2072,
+      "race_half_s": 4420,
+      "race_marathon_s": 9057
     },
     "2026-05-29": {
       "date": "2026-05-29",
@@ -502,7 +707,12 @@
       "body_battery_high": 92,
       "avg_stress": 28,
       "steps": 25664,
-      "training_readiness": 13
+      "training_readiness": 13,
+      "vo2max": 67.0,
+      "race_5k_s": 989,
+      "race_10k_s": 2071,
+      "race_half_s": 4419,
+      "race_marathon_s": 9052
     },
     "2026-05-28": {
       "date": "2026-05-28",
@@ -514,7 +724,12 @@
       "body_battery_high": 81,
       "avg_stress": 27,
       "steps": 15061,
-      "training_readiness": 25
+      "training_readiness": 25,
+      "vo2max": null,
+      "race_5k_s": 990,
+      "race_10k_s": 2072,
+      "race_half_s": 4418,
+      "race_marathon_s": 9048
     },
     "2026-05-27": {
       "date": "2026-05-27",
@@ -526,7 +741,12 @@
       "body_battery_high": 91,
       "avg_stress": 21,
       "steps": 27552,
-      "training_readiness": 6
+      "training_readiness": 6,
+      "vo2max": 62.0,
+      "race_5k_s": 990,
+      "race_10k_s": 2071,
+      "race_half_s": 4417,
+      "race_marathon_s": 9043
     },
     "2026-05-26": {
       "date": "2026-05-26",
@@ -538,7 +758,12 @@
       "body_battery_high": 78,
       "avg_stress": 33,
       "steps": 23470,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": 63.0,
+      "race_5k_s": 990,
+      "race_10k_s": 2071,
+      "race_half_s": 4415,
+      "race_marathon_s": 9038
     },
     "2026-05-25": {
       "date": "2026-05-25",
@@ -550,7 +775,12 @@
       "body_battery_high": 98,
       "avg_stress": 39,
       "steps": 34968,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": 62.0,
+      "race_5k_s": 989,
+      "race_10k_s": 2070,
+      "race_half_s": 4414,
+      "race_marathon_s": 9033
     },
     "2026-05-24": {
       "date": "2026-05-24",
@@ -562,7 +792,12 @@
       "body_battery_high": 88,
       "avg_stress": 19,
       "steps": 23317,
-      "training_readiness": 14
+      "training_readiness": 14,
+      "vo2max": null,
+      "race_5k_s": 988,
+      "race_10k_s": 2070,
+      "race_half_s": 4412,
+      "race_marathon_s": 9028
     },
     "2026-05-23": {
       "date": "2026-05-23",
@@ -574,7 +809,12 @@
       "body_battery_high": 92,
       "avg_stress": 25,
       "steps": 38018,
-      "training_readiness": 1
+      "training_readiness": 1,
+      "vo2max": 61.0,
+      "race_5k_s": 986,
+      "race_10k_s": 2065,
+      "race_half_s": 4411,
+      "race_marathon_s": 9023
     },
     "2026-05-22": {
       "date": "2026-05-22",
@@ -586,7 +826,12 @@
       "body_battery_high": 83,
       "avg_stress": 23,
       "steps": 23449,
-      "training_readiness": 25
+      "training_readiness": 25,
+      "vo2max": 64.0,
+      "race_5k_s": 984,
+      "race_10k_s": 2062,
+      "race_half_s": 4410,
+      "race_marathon_s": 9018
     },
     "2026-05-21": {
       "date": "2026-05-21",
@@ -598,7 +843,12 @@
       "body_battery_high": 84,
       "avg_stress": 27,
       "steps": 22535,
-      "training_readiness": 2
+      "training_readiness": 2,
+      "vo2max": 64.0,
+      "race_5k_s": 984,
+      "race_10k_s": 2062,
+      "race_half_s": 4408,
+      "race_marathon_s": 9014
     },
     "2026-05-20": {
       "date": "2026-05-20",
@@ -610,7 +860,12 @@
       "body_battery_high": 86,
       "avg_stress": 27,
       "steps": 24805,
-      "training_readiness": 50
+      "training_readiness": 50,
+      "vo2max": 63.0,
+      "race_5k_s": 997,
+      "race_10k_s": 2070,
+      "race_half_s": 4408,
+      "race_marathon_s": 9010
     },
     "2026-05-19": {
       "date": "2026-05-19",
@@ -622,7 +877,12 @@
       "body_battery_high": 73,
       "avg_stress": 27,
       "steps": 20546,
-      "training_readiness": 11
+      "training_readiness": 11,
+      "vo2max": 62.0,
+      "race_5k_s": 997,
+      "race_10k_s": 2069,
+      "race_half_s": 4407,
+      "race_marathon_s": 9006
     },
     "2026-05-18": {
       "date": "2026-05-18",
@@ -634,7 +894,12 @@
       "body_battery_high": 79,
       "avg_stress": 31,
       "steps": 20393,
-      "training_readiness": 30
+      "training_readiness": 30,
+      "vo2max": 62.0,
+      "race_5k_s": 996,
+      "race_10k_s": 2069,
+      "race_half_s": 4405,
+      "race_marathon_s": 9001
     },
     "2026-05-17": {
       "date": "2026-05-17",
@@ -646,7 +911,12 @@
       "body_battery_high": 70,
       "avg_stress": 17,
       "steps": 17936,
-      "training_readiness": 26
+      "training_readiness": 26,
+      "vo2max": null,
+      "race_5k_s": 994,
+      "race_10k_s": 2069,
+      "race_half_s": 4404,
+      "race_marathon_s": 8996
     },
     "2026-05-16": {
       "date": "2026-05-16",
@@ -658,7 +928,12 @@
       "body_battery_high": 69,
       "avg_stress": 34,
       "steps": 17637,
-      "training_readiness": 26
+      "training_readiness": 26,
+      "vo2max": 61.0,
+      "race_5k_s": 993,
+      "race_10k_s": 2069,
+      "race_half_s": 4404,
+      "race_marathon_s": 8996
     },
     "2026-05-15": {
       "date": "2026-05-15",
@@ -670,7 +945,12 @@
       "body_battery_high": 93,
       "avg_stress": 30,
       "steps": 14639,
-      "training_readiness": 50
+      "training_readiness": 50,
+      "vo2max": 61.0,
+      "race_5k_s": 991,
+      "race_10k_s": 2069,
+      "race_half_s": 4404,
+      "race_marathon_s": 8996
     },
     "2026-05-14": {
       "date": "2026-05-14",
@@ -682,7 +962,12 @@
       "body_battery_high": 77,
       "avg_stress": 26,
       "steps": 18582,
-      "training_readiness": 25
+      "training_readiness": 25,
+      "vo2max": 61.0,
+      "race_5k_s": 989,
+      "race_10k_s": 2068,
+      "race_half_s": 4404,
+      "race_marathon_s": 8996
     },
     "2026-05-13": {
       "date": "2026-05-13",
@@ -694,7 +979,12 @@
       "body_battery_high": 84,
       "avg_stress": 26,
       "steps": 17202,
-      "training_readiness": 30
+      "training_readiness": 30,
+      "vo2max": 61.0,
+      "race_5k_s": 987,
+      "race_10k_s": 2064,
+      "race_half_s": 4404,
+      "race_marathon_s": 8996
     },
     "2026-05-12": {
       "date": "2026-05-12",
@@ -706,7 +996,12 @@
       "body_battery_high": 91,
       "avg_stress": 29,
       "steps": 20028,
-      "training_readiness": 44
+      "training_readiness": 44,
+      "vo2max": 62.0,
+      "race_5k_s": 984,
+      "race_10k_s": 2061,
+      "race_half_s": 4404,
+      "race_marathon_s": 8996
     },
     "2026-05-11": {
       "date": "2026-05-11",
@@ -718,7 +1013,12 @@
       "body_battery_high": 100,
       "avg_stress": 28,
       "steps": 17540,
-      "training_readiness": 50
+      "training_readiness": 50,
+      "vo2max": 61.0,
+      "race_5k_s": 982,
+      "race_10k_s": 2055,
+      "race_half_s": 4404,
+      "race_marathon_s": 8996
     },
     "2026-05-10": {
       "date": "2026-05-10",
@@ -730,7 +1030,12 @@
       "body_battery_high": 93,
       "avg_stress": 25,
       "steps": 4568,
-      "training_readiness": 52
+      "training_readiness": 52,
+      "vo2max": null,
+      "race_5k_s": 982,
+      "race_10k_s": 2056,
+      "race_half_s": 4404,
+      "race_marathon_s": 8996
     },
     "2026-05-09": {
       "date": "2026-05-09",
@@ -742,7 +1047,12 @@
       "body_battery_high": 86,
       "avg_stress": 26,
       "steps": 18582,
-      "training_readiness": 50
+      "training_readiness": 50,
+      "vo2max": 62.0,
+      "race_5k_s": 979,
+      "race_10k_s": 2051,
+      "race_half_s": 4404,
+      "race_marathon_s": 8996
     },
     "2026-05-08": {
       "date": "2026-05-08",
@@ -754,7 +1064,12 @@
       "body_battery_high": 94,
       "avg_stress": 32,
       "steps": 20588,
-      "training_readiness": 51
+      "training_readiness": 51,
+      "vo2max": 63.0,
+      "race_5k_s": 977,
+      "race_10k_s": 2047,
+      "race_half_s": 4404,
+      "race_marathon_s": 8996
     }
   },
   "activities": {

@@ -74,12 +74,13 @@ def fmt_hms(seconds) -> str | None:
     return f"{h}h {m}m" if h else f"{m}m"
 
 
-def wellness_fields(garmin: Garmin, day: date) -> dict:
+def wellness_fields(garmin: Garmin, day: date, race_by_date: dict | None = None) -> dict:
     cdate = day.isoformat()
     stats = safe(lambda: garmin.get_stats(cdate)) or {}
     sleep = safe(lambda: garmin.get_sleep_data(cdate)) or {}
     hrv = safe(lambda: garmin.get_hrv_data(cdate)) or {}
     readiness = safe(lambda: garmin.get_training_readiness(cdate)) or []
+    max_metrics = safe(lambda: garmin.get_max_metrics(cdate)) or []
 
     daily_sleep = (sleep or {}).get("dailySleepDTO") or {}
     sleep_scores = daily_sleep.get("sleepScores") or {}
@@ -93,7 +94,13 @@ def wellness_fields(garmin: Garmin, day: date) -> dict:
     if isinstance(readiness, list) and readiness:
         readiness_score = readiness[0].get("score")
 
+    vo2max = None
+    if isinstance(max_metrics, list) and max_metrics:
+        vo2max = (max_metrics[0].get("generic") or {}).get("vo2MaxValue")
+
     avg_stress = stats.get("averageStressLevel")
+
+    race = (race_by_date or {}).get(cdate) or {}
 
     return {
         "date": cdate,
@@ -106,7 +113,17 @@ def wellness_fields(garmin: Garmin, day: date) -> dict:
         "avg_stress": avg_stress if (avg_stress is not None and avg_stress >= 0) else None,
         "steps": stats.get("totalSteps"),
         "training_readiness": readiness_score,
+        "vo2max": vo2max,
+        "race_5k_s": race.get("time5K"),
+        "race_10k_s": race.get("time10K"),
+        "race_half_s": race.get("timeHalfMarathon"),
+        "race_marathon_s": race.get("timeMarathon"),
     }
+
+
+def race_predictions_by_date(garmin: Garmin, start: str, end: str) -> dict:
+    rows = safe(lambda: garmin.get_race_predictions(startdate=start, enddate=end, _type="daily")) or []
+    return {row["calendarDate"]: row for row in rows if row.get("calendarDate")}
 
 
 def render_wellness_note(f: dict) -> str:
@@ -127,11 +144,28 @@ def render_wellness_note(f: dict) -> str:
         lines.append(f"- Steps: {f['steps']}")
     if f["training_readiness"] is not None:
         lines.append(f"- Training readiness: {f['training_readiness']}")
+    if f["vo2max"] is not None:
+        lines.append(f"- VO2 max: {f['vo2max']}")
+    if f["race_marathon_s"] is not None:
+        lines.append(
+            f"- Predicted race times: 5K {fmt_race(f['race_5k_s'])}, "
+            f"10K {fmt_race(f['race_10k_s'])}, Half {fmt_race(f['race_half_s'])}, "
+            f"Marathon {fmt_race(f['race_marathon_s'])}"
+        )
 
     if len(lines) == 2:
         lines.append("- (No wellness data synced for this day)")
 
     return "\n".join(lines) + "\n"
+
+
+def fmt_race(seconds) -> str:
+    if seconds is None:
+        return "-"
+    total = int(seconds)
+    h, rem = divmod(total, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
 
 
 def activity_fields(act: dict) -> dict:
@@ -177,10 +211,13 @@ def sync(garmin: Garmin, days: int, out_dir: str, dry_run: bool) -> None:
     out = Path(out_dir)
     today = date.today()
 
+    range_start = (today - timedelta(days=days - 1)).isoformat()
+    race_by_date = race_predictions_by_date(garmin, range_start, today.isoformat())
+
     wellness = []
     for i in range(days):
         day = today - timedelta(days=i)
-        fields = wellness_fields(garmin, day)
+        fields = wellness_fields(garmin, day, race_by_date)
         wellness.append(fields)
         if dry_run:
             print(render_wellness_note(fields))
