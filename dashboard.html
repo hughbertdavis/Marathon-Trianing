@@ -1,0 +1,279 @@
+<title>Training Dashboard</title>
+<style>
+  :root {
+    --bg: #eef2f1;
+    --surface: #ffffff;
+    --surface-2: #f5f8f7;
+    --ink: #1a1f1e;
+    --ink-muted: #5c6664;
+    --border: #dde3e1;
+    --training: #c1652b;
+    --training-soft: rgba(193, 101, 43, 0.14);
+    --recovery: #03948a;
+    --recovery-soft: rgba(3, 148, 138, 0.14);
+    --good: #1f7a4c;
+    --bad: #b23b2e;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #141a19;
+      --surface: #1c2422;
+      --surface-2: #202a28;
+      --ink: #edefee;
+      --ink-muted: #9bb0ab;
+      --border: #2b3432;
+      --training: #cc7038;
+      --training-soft: rgba(204, 112, 56, 0.16);
+      --recovery: #1f9e96;
+      --recovery-soft: rgba(31, 158, 150, 0.16);
+      --good: #4fbf82;
+      --bad: #e2685a;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #141a19;
+    --surface: #1c2422;
+    --surface-2: #202a28;
+    --ink: #edefee;
+    --ink-muted: #9bb0ab;
+    --border: #2b3432;
+    --training: #cc7038;
+    --training-soft: rgba(204, 112, 56, 0.16);
+    --recovery: #1f9e96;
+    --recovery-soft: rgba(31, 158, 150, 0.16);
+    --good: #4fbf82;
+    --bad: #e2685a;
+  }
+  :root[data-theme="light"] {
+    --bg: #eef2f1;
+    --surface: #ffffff;
+    --surface-2: #f5f8f7;
+    --ink: #1a1f1e;
+    --ink-muted: #5c6664;
+    --border: #dde3e1;
+    --training: #c1652b;
+    --training-soft: rgba(193, 101, 43, 0.14);
+    --recovery: #03948a;
+    --recovery-soft: rgba(3, 148, 138, 0.14);
+    --good: #1f7a4c;
+    --bad: #b23b2e;
+  }
+
+  * { box-sizing: border-box; }
+
+  .dashboard {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 28px clamp(16px, 4vw, 40px) 40px;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+
+  .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 18px;
+    margin-bottom: 28px;
+  }
+  .topbar h1 {
+    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    font-size: clamp(24px, 3.4vw, 32px);
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: -0.01em;
+  }
+  .subtitle { margin: 0; color: var(--ink-muted); font-size: 14px; }
+  .topbar-meta {
+    text-align: right;
+    font-size: 12px;
+    color: var(--ink-muted);
+    line-height: 1.5;
+  }
+  .topbar-meta strong {
+    color: var(--ink);
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+  @media (max-width: 720px) {
+    .columns { grid-template-columns: 1fr; }
+  }
+
+  .side h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-muted);
+    margin: 0 0 14px;
+  }
+  .side-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+  .dot-training { background: var(--training); }
+  .dot-recovery { background: var(--recovery); }
+
+  .card-grid { display: flex; flex-direction: column; gap: 14px; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px 12px;
+  }
+  .side-training .card { border-left: 3px solid var(--training); }
+  .side-recovery .card { border-left: 3px solid var(--recovery); }
+
+  .card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .card-title {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .delta {
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    background: var(--surface-2);
+    color: var(--ink-muted);
+  }
+  .delta.good { color: var(--good); background: color-mix(in srgb, var(--good) 14%, transparent); }
+  .delta.bad { color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, transparent); }
+  .delta.flat { color: var(--ink-muted); }
+
+  .card-value {
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-size: 28px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 6px;
+  }
+  .card-unit {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink-muted);
+    margin-left: 4px;
+  }
+
+  .spark { width: 100%; height: auto; display: block; overflow: visible; }
+  .spark-grid { stroke: var(--border); stroke-width: 1; }
+  .spark-tick { font-size: 9px; fill: var(--ink-muted); }
+  .spark-empty { font-size: 11px; fill: var(--ink-muted); }
+
+  .side-training .spark-line { stroke: var(--training); stroke-width: 2; fill: none; }
+  .side-training .spark-area { fill: var(--training-soft); stroke: none; }
+  .side-training .dot { fill: var(--training); opacity: 0.55; }
+  .side-training .dot-current { fill: var(--training); }
+  .side-training .bar { fill: var(--training); opacity: 0.45; }
+  .side-training .bar-current { fill: var(--training); }
+
+  .side-recovery .spark-line { stroke: var(--recovery); stroke-width: 2; fill: none; }
+  .side-recovery .spark-area { fill: var(--recovery-soft); stroke: none; }
+  .side-recovery .dot { fill: var(--recovery); opacity: 0.55; }
+  .side-recovery .dot-current { fill: var(--recovery); }
+  .side-recovery .bar { fill: var(--recovery); opacity: 0.45; }
+  .side-recovery .bar-current { fill: var(--recovery); }
+
+  .foot {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--ink-muted);
+  }
+</style>
+<div class="dashboard">
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>Training Dashboard</h1>
+      <p class="subtitle">Week of Jul 6 (in progress) – 4 activities logged, 4 days of wellness data</p>
+    </div>
+    <div class="topbar-meta">Last updated<br><strong>Thursday, Jul 9, 2026 - 2:07 PM</strong></div>
+  </header>
+
+  <div class="columns">
+    <section class="side side-training">
+      <h2><span class="side-dot dot-training"></span>Training</h2>
+      <div class="card-grid">
+        
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Weekly Volume</span>
+        <span class="delta flat">so far</span>
+      </div>
+      <div class="card-value">21.0<span class="card-unit">mi</span></div>
+      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><rect x="0.7" y="66.0" width="14.5" height="0.0" rx="2" class="bar"><title>May 4: 8.1</title></rect><rect x="30.1" y="37.0" width="14.5" height="29.0" rx="2" class="bar"><title>May 11: 40.2</title></rect><rect x="59.4" y="19.7" width="14.5" height="46.3" rx="2" class="bar"><title>May 18: 59.2</title></rect><rect x="88.7" y="18.7" width="14.5" height="47.3" rx="2" class="bar"><title>May 25: 60.4</title></rect><rect x="118.1" y="19.0" width="14.5" height="47.0" rx="2" class="bar"><title>Jun 1: 60.1</title></rect><rect x="147.4" y="15.3" width="14.5" height="50.7" rx="2" class="bar"><title>Jun 8: 64.1</title></rect><rect x="176.7" y="12.2" width="14.5" height="53.8" rx="2" class="bar"><title>Jun 15: 67.5</title></rect><rect x="206.1" y="10.0" width="14.5" height="56.0" rx="2" class="bar"><title>Jun 22: 70.0</title></rect><rect x="235.4" y="37.1" width="14.5" height="28.9" rx="2" class="bar"><title>Jun 29: 40.0</title></rect><rect x="264.7" y="54.3" width="14.5" height="11.7" rx="2" class="bar-current"><title>Jul 6: 21.0</title></rect><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Total Vert</span>
+        <span class="delta flat">so far</span>
+      </div>
+      <div class="card-value">1,624<span class="card-unit">ft</span></div>
+      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><rect x="0.7" y="66.0" width="14.5" height="0.0" rx="2" class="bar"><title>May 4: 489</title></rect><rect x="30.1" y="28.1" width="14.5" height="37.9" rx="2" class="bar"><title>May 11: 6,135</title></rect><rect x="59.4" y="27.6" width="14.5" height="38.4" rx="2" class="bar"><title>May 18: 6,207</title></rect><rect x="88.7" y="45.6" width="14.5" height="20.4" rx="2" class="bar"><title>May 25: 3,527</title></rect><rect x="118.1" y="41.3" width="14.5" height="24.7" rx="2" class="bar"><title>Jun 1: 4,167</title></rect><rect x="147.4" y="10.0" width="14.5" height="56.0" rx="2" class="bar"><title>Jun 8: 8,829</title></rect><rect x="176.7" y="24.9" width="14.5" height="41.1" rx="2" class="bar"><title>Jun 15: 6,608</title></rect><rect x="206.1" y="39.4" width="14.5" height="26.6" rx="2" class="bar"><title>Jun 22: 4,446</title></rect><rect x="235.4" y="50.4" width="14.5" height="15.6" rx="2" class="bar"><title>Jun 29: 2,812</title></rect><rect x="264.7" y="58.4" width="14.5" height="7.6" rx="2" class="bar-current"><title>Jul 6: 1,624</title></rect><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Avg Heart Rate</span>
+        <span class="delta flat">so far</span>
+      </div>
+      <div class="card-value">146<span class="card-unit">bpm</span></div>
+      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><path d="M 8.0 14.4 L 37.3 30.7 L 66.7 66.0 L 96.0 41.2 L 125.3 10.0 L 154.7 36.4 L 184.0 35.8 L 213.3 20.7 L 242.7 20.0 L 272.0 26.5 L 272.0 66 L 8.0 66 Z" class="spark-area" /><path d="M 8.0 14.4 L 37.3 30.7 L 66.7 66.0 L 96.0 41.2 L 125.3 10.0 L 154.7 36.4 L 184.0 35.8 L 213.3 20.7 L 242.7 20.0 L 272.0 26.5" class="spark-line" /><circle cx="8.0" cy="14.4" r="2" class="dot"><title>May 4: 154</title></circle><circle cx="37.3" cy="30.7" r="2" class="dot"><title>May 11: 143</title></circle><circle cx="66.7" cy="66.0" r="2" class="dot"><title>May 18: 118</title></circle><circle cx="96.0" cy="41.2" r="2" class="dot"><title>May 25: 136</title></circle><circle cx="125.3" cy="10.0" r="2" class="dot"><title>Jun 1: 158</title></circle><circle cx="154.7" cy="36.4" r="2" class="dot"><title>Jun 8: 139</title></circle><circle cx="184.0" cy="35.8" r="2" class="dot"><title>Jun 15: 139</title></circle><circle cx="213.3" cy="20.7" r="2" class="dot"><title>Jun 22: 150</title></circle><circle cx="242.7" cy="20.0" r="2" class="dot"><title>Jun 29: 151</title></circle><circle cx="272.0" cy="26.5" r="3.5" class="dot-current"><title>Jul 6: 146</title></circle><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
+    </div>
+      </div>
+    </section>
+
+    <section class="side side-recovery">
+      <h2><span class="side-dot dot-recovery"></span>Recovery</h2>
+      <div class="card-grid">
+        
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Sleep</span>
+        <span class="delta flat">so far</span>
+      </div>
+      <div class="card-value">6.5<span class="card-unit">h</span></div>
+      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><path d="M 8.0 10.5 L 37.3 22.9 L 66.7 10.0 L 96.0 66.0 L 125.3 44.6 L 154.7 49.3 L 184.0 14.4 L 213.3 15.9 L 242.7 39.9 L 272.0 28.6 L 272.0 66 L 8.0 66 Z" class="spark-area" /><path d="M 8.0 10.5 L 37.3 22.9 L 66.7 10.0 L 96.0 66.0 L 125.3 44.6 L 154.7 49.3 L 184.0 14.4 L 213.3 15.9 L 242.7 39.9 L 272.0 28.6" class="spark-line" /><circle cx="8.0" cy="10.5" r="2" class="dot"><title>May 4: 6.8</title></circle><circle cx="37.3" cy="22.9" r="2" class="dot"><title>May 11: 6.6</title></circle><circle cx="66.7" cy="10.0" r="2" class="dot"><title>May 18: 6.9</title></circle><circle cx="96.0" cy="66.0" r="2" class="dot"><title>May 25: 5.7</title></circle><circle cx="125.3" cy="44.6" r="2" class="dot"><title>Jun 1: 6.1</title></circle><circle cx="154.7" cy="49.3" r="2" class="dot"><title>Jun 8: 6.0</title></circle><circle cx="184.0" cy="14.4" r="2" class="dot"><title>Jun 15: 6.8</title></circle><circle cx="213.3" cy="15.9" r="2" class="dot"><title>Jun 22: 6.7</title></circle><circle cx="242.7" cy="39.9" r="2" class="dot"><title>Jun 29: 6.2</title></circle><circle cx="272.0" cy="28.6" r="3.5" class="dot-current"><title>Jul 6: 6.5</title></circle><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">HRV</span>
+        <span class="delta flat">so far</span>
+      </div>
+      <div class="card-value">76<span class="card-unit">ms</span></div>
+      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><path d="M 8.0 10.0 L 37.3 31.1 L 66.7 46.5 L 96.0 30.4 L 125.3 38.5 L 154.7 25.5 L 184.0 66.0 L 213.3 41.7 L 242.7 13.6 L 272.0 32.6 L 272.0 66 L 8.0 66 Z" class="spark-area" /><path d="M 8.0 10.0 L 37.3 31.1 L 66.7 46.5 L 96.0 30.4 L 125.3 38.5 L 154.7 25.5 L 184.0 66.0 L 213.3 41.7 L 242.7 13.6 L 272.0 32.6" class="spark-line" /><circle cx="8.0" cy="10.0" r="2" class="dot"><title>May 4: 93</title></circle><circle cx="37.3" cy="31.1" r="2" class="dot"><title>May 11: 77</title></circle><circle cx="66.7" cy="46.5" r="2" class="dot"><title>May 18: 65</title></circle><circle cx="96.0" cy="30.4" r="2" class="dot"><title>May 25: 78</title></circle><circle cx="125.3" cy="38.5" r="2" class="dot"><title>Jun 1: 71</title></circle><circle cx="154.7" cy="25.5" r="2" class="dot"><title>Jun 8: 81</title></circle><circle cx="184.0" cy="66.0" r="2" class="dot"><title>Jun 15: 50</title></circle><circle cx="213.3" cy="41.7" r="2" class="dot"><title>Jun 22: 69</title></circle><circle cx="242.7" cy="13.6" r="2" class="dot"><title>Jun 29: 91</title></circle><circle cx="272.0" cy="32.6" r="3.5" class="dot-current"><title>Jul 6: 76</title></circle><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Training Readiness</span>
+        <span class="delta flat">so far</span>
+      </div>
+      <div class="card-value">55<span class="card-unit"></span></div>
+      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><path d="M 8.0 14.4 L 37.3 31.2 L 66.7 49.9 L 96.0 62.4 L 125.3 66.0 L 154.7 50.7 L 184.0 57.1 L 213.3 63.5 L 242.7 29.7 L 272.0 10.0 L 272.0 66 L 8.0 66 Z" class="spark-area" /><path d="M 8.0 14.4 L 37.3 31.2 L 66.7 49.9 L 96.0 62.4 L 125.3 66.0 L 154.7 50.7 L 184.0 57.1 L 213.3 63.5 L 242.7 29.7 L 272.0 10.0" class="spark-line" /><circle cx="8.0" cy="14.4" r="2" class="dot"><title>May 4: 51</title></circle><circle cx="37.3" cy="31.2" r="2" class="dot"><title>May 11: 36</title></circle><circle cx="66.7" cy="49.9" r="2" class="dot"><title>May 18: 19</title></circle><circle cx="96.0" cy="62.4" r="2" class="dot"><title>May 25: 8</title></circle><circle cx="125.3" cy="66.0" r="2" class="dot"><title>Jun 1: 4</title></circle><circle cx="154.7" cy="50.7" r="2" class="dot"><title>Jun 8: 18</title></circle><circle cx="184.0" cy="57.1" r="2" class="dot"><title>Jun 15: 12</title></circle><circle cx="213.3" cy="63.5" r="2" class="dot"><title>Jun 22: 7</title></circle><circle cx="242.7" cy="29.7" r="2" class="dot"><title>Jun 29: 37</title></circle><circle cx="272.0" cy="10.0" r="3.5" class="dot-current"><title>Jul 6: 55</title></circle><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
+    </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="foot">Built from your Garmin data - say "update my dashboard" to refresh</footer>
+</div>
