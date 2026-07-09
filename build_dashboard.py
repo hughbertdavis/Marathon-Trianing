@@ -8,7 +8,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DATA_PATH = HERE / "garmin" / "data.json"
-OUT_PATH = HERE / "dashboard.html"
+OUT_PATH = HERE / "docs" / "index.html"
 
 METERS_PER_MILE = 1609.344
 METERS_PER_FOOT = 0.3048
@@ -478,9 +478,9 @@ def main():
     data = load_data()
     weeks = bucket_weeks(data)
     body = build_html(weeks)
-    out_path = HERE / "dashboard.html"
-    out_path.write_text(body, encoding="utf-8")
-    print(f"Aggregated {len(weeks)} weeks. Dashboard written to {out_path}")
+    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    OUT_PATH.write_text(body, encoding="utf-8")
+    print(f"Aggregated {len(weeks)} weeks. Dashboard written to {OUT_PATH}")
 
 
 if __name__ == "__main__":
