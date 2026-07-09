@@ -4,5 +4,6 @@
 - Type: running
 - Distance: 6.46 km
 - Duration: 32m
+- Elevation gain: 120 m
 - Avg HR: 152 bpm
 - Calories: 378

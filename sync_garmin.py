@@ -74,7 +74,7 @@ def fmt_hms(seconds) -> str | None:
     return f"{h}h {m}m" if h else f"{m}m"
 
 
-def wellness_note(garmin: Garmin, day: date) -> str:
+def wellness_fields(garmin: Garmin, day: date) -> dict:
     cdate = day.isoformat()
     stats = safe(lambda: garmin.get_stats(cdate)) or {}
     sleep = safe(lambda: garmin.get_sleep_data(cdate)) or {}
@@ -93,35 +93,40 @@ def wellness_note(garmin: Garmin, day: date) -> str:
     if isinstance(readiness, list) and readiness:
         readiness_score = readiness[0].get("score")
 
-    lines = [f"# Garmin wellness {cdate}", ""]
-
-    rhr = stats.get("restingHeartRate")
-    if rhr is not None:
-        lines.append(f"- Resting HR: {rhr} bpm")
-
-    if last_night_hrv is not None:
-        lines.append(f"- HRV (overnight): {last_night_hrv:.0f} ms")
-
-    if sleep_seconds:
-        hours = sleep_seconds / 3600
-        score_str = f" (score {overall_score})" if overall_score is not None else ""
-        lines.append(f"- Sleep: {hours:.1f} h{score_str}")
-
-    lo = stats.get("bodyBatteryLowestValue")
-    hi = stats.get("bodyBatteryHighestValue")
-    if lo is not None and hi is not None:
-        lines.append(f"- Body battery: {lo} -> {hi}")
-
     avg_stress = stats.get("averageStressLevel")
-    if avg_stress is not None and avg_stress >= 0:
-        lines.append(f"- Stress (avg): {avg_stress}")
 
-    steps = stats.get("totalSteps")
-    if steps is not None:
-        lines.append(f"- Steps: {steps}")
+    return {
+        "date": cdate,
+        "resting_hr": stats.get("restingHeartRate"),
+        "hrv_overnight": last_night_hrv,
+        "sleep_hours": (sleep_seconds / 3600) if sleep_seconds else None,
+        "sleep_score": overall_score,
+        "body_battery_low": stats.get("bodyBatteryLowestValue"),
+        "body_battery_high": stats.get("bodyBatteryHighestValue"),
+        "avg_stress": avg_stress if (avg_stress is not None and avg_stress >= 0) else None,
+        "steps": stats.get("totalSteps"),
+        "training_readiness": readiness_score,
+    }
 
-    if readiness_score is not None:
-        lines.append(f"- Training readiness: {readiness_score}")
+
+def render_wellness_note(f: dict) -> str:
+    lines = [f"# Garmin wellness {f['date']}", ""]
+
+    if f["resting_hr"] is not None:
+        lines.append(f"- Resting HR: {f['resting_hr']} bpm")
+    if f["hrv_overnight"] is not None:
+        lines.append(f"- HRV (overnight): {f['hrv_overnight']:.0f} ms")
+    if f["sleep_hours"]:
+        score_str = f" (score {f['sleep_score']})" if f["sleep_score"] is not None else ""
+        lines.append(f"- Sleep: {f['sleep_hours']:.1f} h{score_str}")
+    if f["body_battery_low"] is not None and f["body_battery_high"] is not None:
+        lines.append(f"- Body battery: {f['body_battery_low']} -> {f['body_battery_high']}")
+    if f["avg_stress"] is not None:
+        lines.append(f"- Stress (avg): {f['avg_stress']}")
+    if f["steps"] is not None:
+        lines.append(f"- Steps: {f['steps']}")
+    if f["training_readiness"] is not None:
+        lines.append(f"- Training readiness: {f['training_readiness']}")
 
     if len(lines) == 2:
         lines.append("- (No wellness data synced for this day)")
@@ -129,7 +134,7 @@ def wellness_note(garmin: Garmin, day: date) -> str:
     return "\n".join(lines) + "\n"
 
 
-def activity_note(act: dict) -> tuple[str, str]:
+def activity_fields(act: dict) -> dict:
     name = act.get("activityName") or "Activity"
     start_local = act.get("startTimeLocal") or ""
     type_key = ((act.get("activityType") or {}).get("typeKey")) or "activity"
@@ -138,45 +143,55 @@ def activity_note(act: dict) -> tuple[str, str]:
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "activity"
     filename = f"{date_part}-{time_part}-{slug}.md" if time_part else f"{date_part}-{slug}.md"
 
-    duration_s = act.get("duration")
-    distance_m = act.get("distance")
-    avg_hr = act.get("averageHR")
-    calories = act.get("calories")
+    return {
+        "file": filename,
+        "name": name,
+        "date": date_part,
+        "start_local": start_local,
+        "type": type_key,
+        "duration_s": act.get("duration"),
+        "distance_m": act.get("distance"),
+        "elevation_gain_m": act.get("elevationGain"),
+        "avg_hr": act.get("averageHR"),
+        "calories": act.get("calories"),
+    }
 
-    lines = [f"# {name}", "", f"- Date: {start_local}", f"- Type: {type_key}"]
-    if distance_m:
-        lines.append(f"- Distance: {distance_m / 1000:.2f} km")
-    if duration_s:
-        lines.append(f"- Duration: {fmt_hms(duration_s)}")
-    if avg_hr:
-        lines.append(f"- Avg HR: {avg_hr:.0f} bpm")
-    if calories:
-        lines.append(f"- Calories: {calories:.0f}")
 
-    return filename, "\n".join(lines) + "\n"
+def render_activity_note(f: dict) -> str:
+    lines = [f"# {f['name']}", "", f"- Date: {f['start_local']}", f"- Type: {f['type']}"]
+    if f["distance_m"]:
+        lines.append(f"- Distance: {f['distance_m'] / 1000:.2f} km")
+    if f["duration_s"]:
+        lines.append(f"- Duration: {fmt_hms(f['duration_s'])}")
+    if f["elevation_gain_m"]:
+        lines.append(f"- Elevation gain: {f['elevation_gain_m']:.0f} m")
+    if f["avg_hr"]:
+        lines.append(f"- Avg HR: {f['avg_hr']:.0f} bpm")
+    if f["calories"]:
+        lines.append(f"- Calories: {f['calories']:.0f}")
+
+    return "\n".join(lines) + "\n"
 
 
 def sync(garmin: Garmin, days: int, out_dir: str, dry_run: bool) -> None:
     out = Path(out_dir)
     today = date.today()
 
-    wellness_notes = []
+    wellness = []
     for i in range(days):
         day = today - timedelta(days=i)
-        note = wellness_note(garmin, day)
-        wellness_notes.append((day.isoformat(), note))
+        fields = wellness_fields(garmin, day)
+        wellness.append(fields)
         if dry_run:
-            print(note)
+            print(render_wellness_note(fields))
 
     start = (today - timedelta(days=days - 1)).isoformat()
-    activities = safe(lambda: garmin.get_activities_by_date(start, today.isoformat())) or []
-    activity_notes = []
-    for act in activities:
-        filename, note = activity_note(act)
-        activity_notes.append((filename, note))
-        if dry_run:
-            print(f"--- {filename} ---")
-            print(note)
+    raw_activities = safe(lambda: garmin.get_activities_by_date(start, today.isoformat())) or []
+    activities = [activity_fields(act) for act in raw_activities]
+    if dry_run:
+        for a in activities:
+            print(f"--- {a['file']} ---")
+            print(render_activity_note(a))
 
     if dry_run:
         return
@@ -186,10 +201,10 @@ def sync(garmin: Garmin, days: int, out_dir: str, dry_run: bool) -> None:
     daily_dir.mkdir(parents=True, exist_ok=True)
     act_dir.mkdir(parents=True, exist_ok=True)
 
-    for iso_date, note in wellness_notes:
-        (daily_dir / f"{iso_date}.md").write_text(note, encoding="utf-8")
-    for filename, note in activity_notes:
-        (act_dir / filename).write_text(note, encoding="utf-8")
+    for f in wellness:
+        (daily_dir / f"{f['date']}.md").write_text(render_wellness_note(f), encoding="utf-8")
+    for a in activities:
+        (act_dir / a["file"]).write_text(render_activity_note(a), encoding="utf-8")
 
     json_path = out / "data.json"
     existing = {"wellness": {}, "activities": {}}
@@ -198,16 +213,13 @@ def sync(garmin: Garmin, days: int, out_dir: str, dry_run: bool) -> None:
         existing.setdefault("wellness", {})
         existing.setdefault("activities", {})
 
-    for iso_date, note in wellness_notes:
-        existing["wellness"][iso_date] = note
-    for filename, note in activity_notes:
-        existing["activities"][filename] = note
+    for f in wellness:
+        existing["wellness"][f["date"]] = f
+    for a in activities:
+        existing["activities"][a["file"]] = a
 
     json_path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
-    print(
-        f"Wrote {len(wellness_notes)} daily notes and {len(activity_notes)} "
-        f"activity notes to {out}/"
-    )
+    print(f"Wrote {len(wellness)} daily notes and {len(activities)} activity notes to {out}/")
 
 
 def main() -> None:
