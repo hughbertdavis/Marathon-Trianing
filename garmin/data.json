@@ -15,7 +15,11 @@
       "race_5k_s": 984,
       "race_10k_s": 2074,
       "race_half_s": 4464,
-      "race_marathon_s": 9238
+      "race_marathon_s": 9238,
+      "training_status": "RECOVERY_1",
+      "acwr_ratio": 0.4,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-07-08": {
       "date": "2026-07-08",
@@ -32,7 +36,11 @@
       "race_5k_s": 981,
       "race_10k_s": 2069,
       "race_half_s": 4461,
-      "race_marathon_s": 9228
+      "race_marathon_s": 9228,
+      "training_status": "RECOVERY_1",
+      "acwr_ratio": 0.5,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-07-07": {
       "date": "2026-07-07",
@@ -49,7 +57,11 @@
       "race_5k_s": 980,
       "race_10k_s": 2066,
       "race_half_s": 4458,
-      "race_marathon_s": 9220
+      "race_marathon_s": 9220,
+      "training_status": "PEAKING_1",
+      "acwr_ratio": 0.4,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-07-06": {
       "date": "2026-07-06",
@@ -66,7 +78,11 @@
       "race_5k_s": 980,
       "race_10k_s": 2065,
       "race_half_s": 4457,
-      "race_marathon_s": 9215
+      "race_marathon_s": 9215,
+      "training_status": "PEAKING_1",
+      "acwr_ratio": 0.3,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-07-05": {
       "date": "2026-07-05",
@@ -83,7 +99,11 @@
       "race_5k_s": 980,
       "race_10k_s": 2065,
       "race_half_s": 4455,
-      "race_marathon_s": 9210
+      "race_marathon_s": 9210,
+      "training_status": "PEAKING_1",
+      "acwr_ratio": 0.4,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-07-04": {
       "date": "2026-07-04",
@@ -100,7 +120,11 @@
       "race_5k_s": 979,
       "race_10k_s": 2064,
       "race_half_s": 4454,
-      "race_marathon_s": 9205
+      "race_marathon_s": 9205,
+      "training_status": "PEAKING_1",
+      "acwr_ratio": 0.5,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-07-03": {
       "date": "2026-07-03",
@@ -117,7 +141,11 @@
       "race_5k_s": 979,
       "race_10k_s": 2064,
       "race_half_s": 4453,
-      "race_marathon_s": 9200
+      "race_marathon_s": 9200,
+      "training_status": "PRODUCTIVE_3",
+      "acwr_ratio": 0.6,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-07-02": {
       "date": "2026-07-02",
@@ -134,7 +162,11 @@
       "race_5k_s": 979,
       "race_10k_s": 2063,
       "race_half_s": 4451,
-      "race_marathon_s": 9195
+      "race_marathon_s": 9195,
+      "training_status": "PRODUCTIVE_3",
+      "acwr_ratio": 0.8,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-07-01": {
       "date": "2026-07-01",
@@ -151,7 +183,11 @@
       "race_5k_s": 978,
       "race_10k_s": 2060,
       "race_half_s": 4449,
-      "race_marathon_s": 9191
+      "race_marathon_s": 9191,
+      "training_status": "PRODUCTIVE_3",
+      "acwr_ratio": 0.8,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-30": {
       "date": "2026-06-30",
@@ -168,7 +204,11 @@
       "race_5k_s": 976,
       "race_10k_s": 2056,
       "race_half_s": 4446,
-      "race_marathon_s": 9186
+      "race_marathon_s": 9186,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 0.7,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-06-29": {
       "date": "2026-06-29",
@@ -185,7 +225,11 @@
       "race_5k_s": 976,
       "race_10k_s": 2056,
       "race_half_s": 4445,
-      "race_marathon_s": 9183
+      "race_marathon_s": 9183,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 0.8,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-28": {
       "date": "2026-06-28",
@@ -202,7 +246,11 @@
       "race_5k_s": 976,
       "race_10k_s": 2056,
       "race_half_s": 4444,
-      "race_marathon_s": 9179
+      "race_marathon_s": 9179,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 0.9,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-27": {
       "date": "2026-06-27",
@@ -219,7 +267,11 @@
       "race_5k_s": 979,
       "race_10k_s": 2063,
       "race_half_s": 4447,
-      "race_marathon_s": 9194
+      "race_marathon_s": 9194,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 0.8,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-26": {
       "date": "2026-06-26",
@@ -236,7 +288,11 @@
       "race_5k_s": 979,
       "race_10k_s": 2061,
       "race_half_s": 4445,
-      "race_marathon_s": 9187
+      "race_marathon_s": 9187,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-25": {
       "date": "2026-06-25",
@@ -253,7 +309,11 @@
       "race_5k_s": 978,
       "race_10k_s": 2059,
       "race_half_s": 4443,
-      "race_marathon_s": 9180
+      "race_marathon_s": 9180,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-24": {
       "date": "2026-06-24",
@@ -270,7 +330,11 @@
       "race_5k_s": 978,
       "race_10k_s": 2059,
       "race_half_s": 4442,
-      "race_marathon_s": 9175
+      "race_marathon_s": 9175,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 1.1,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-23": {
       "date": "2026-06-23",
@@ -287,7 +351,11 @@
       "race_5k_s": 980,
       "race_10k_s": 2062,
       "race_half_s": 4442,
-      "race_marathon_s": 9173
+      "race_marathon_s": 9173,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 0.9,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-22": {
       "date": "2026-06-22",
@@ -304,7 +372,11 @@
       "race_5k_s": 979,
       "race_10k_s": 2060,
       "race_half_s": 4440,
-      "race_marathon_s": 9166
+      "race_marathon_s": 9166,
+      "training_status": "STRAINED_4",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-21": {
       "date": "2026-06-21",
@@ -321,7 +393,11 @@
       "race_5k_s": 981,
       "race_10k_s": 2063,
       "race_half_s": 4441,
-      "race_marathon_s": 9164
+      "race_marathon_s": 9164,
+      "training_status": "STRAINED_4",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-20": {
       "date": "2026-06-20",
@@ -338,7 +414,11 @@
       "race_5k_s": 981,
       "race_10k_s": 2064,
       "race_half_s": 4440,
-      "race_marathon_s": 9171
+      "race_marathon_s": 9171,
+      "training_status": "STRAINED_4",
+      "acwr_ratio": 0.9,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-19": {
       "date": "2026-06-19",
@@ -355,7 +435,11 @@
       "race_5k_s": 981,
       "race_10k_s": 2064,
       "race_half_s": 4439,
-      "race_marathon_s": 9166
+      "race_marathon_s": 9166,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-18": {
       "date": "2026-06-18",
@@ -372,7 +456,11 @@
       "race_5k_s": 980,
       "race_10k_s": 2062,
       "race_half_s": 4438,
-      "race_marathon_s": 9160
+      "race_marathon_s": 9160,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-17": {
       "date": "2026-06-17",
@@ -389,7 +477,11 @@
       "race_5k_s": 980,
       "race_10k_s": 2062,
       "race_half_s": 4437,
-      "race_marathon_s": 9155
+      "race_marathon_s": 9155,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-16": {
       "date": "2026-06-16",
@@ -406,7 +498,11 @@
       "race_5k_s": 982,
       "race_10k_s": 2063,
       "race_half_s": 4436,
-      "race_marathon_s": 9150
+      "race_marathon_s": 9150,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 0.9,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-15": {
       "date": "2026-06-15",
@@ -423,7 +519,11 @@
       "race_5k_s": 982,
       "race_10k_s": 2063,
       "race_half_s": 4435,
-      "race_marathon_s": 9145
+      "race_marathon_s": 9145,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 0.9,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-14": {
       "date": "2026-06-14",
@@ -440,7 +540,11 @@
       "race_5k_s": 984,
       "race_10k_s": 2065,
       "race_half_s": 4434,
-      "race_marathon_s": 9137
+      "race_marathon_s": 9137,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-13": {
       "date": "2026-06-13",
@@ -457,7 +561,11 @@
       "race_5k_s": 984,
       "race_10k_s": 2065,
       "race_half_s": 4433,
-      "race_marathon_s": 9127
+      "race_marathon_s": 9127,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-12": {
       "date": "2026-06-12",
@@ -474,7 +582,11 @@
       "race_5k_s": 987,
       "race_10k_s": 2070,
       "race_half_s": 4434,
-      "race_marathon_s": 9126
+      "race_marathon_s": 9126,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 0.8,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-11": {
       "date": "2026-06-11",
@@ -491,7 +603,11 @@
       "race_5k_s": 986,
       "race_10k_s": 2069,
       "race_half_s": 4433,
-      "race_marathon_s": 9116
+      "race_marathon_s": 9116,
+      "training_status": "RECOVERY_2",
+      "acwr_ratio": 0.7,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-06-10": {
       "date": "2026-06-10",
@@ -508,7 +624,11 @@
       "race_5k_s": 986,
       "race_10k_s": 2069,
       "race_half_s": 4431,
-      "race_marathon_s": 9107
+      "race_marathon_s": 9107,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 0.7,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-06-09": {
       "date": "2026-06-09",
@@ -525,7 +645,11 @@
       "race_5k_s": 989,
       "race_10k_s": 2071,
       "race_half_s": 4431,
-      "race_marathon_s": 9101
+      "race_marathon_s": 9101,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 0.8,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-08": {
       "date": "2026-06-08",
@@ -542,7 +666,11 @@
       "race_5k_s": 988,
       "race_10k_s": 2071,
       "race_half_s": 4430,
-      "race_marathon_s": 9097
+      "race_marathon_s": 9097,
+      "training_status": "MAINTAINING_4",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-07": {
       "date": "2026-06-07",
@@ -559,7 +687,11 @@
       "race_5k_s": 987,
       "race_10k_s": 2069,
       "race_half_s": 4428,
-      "race_marathon_s": 9091
+      "race_marathon_s": 9091,
+      "training_status": "MAINTAINING_6",
+      "acwr_ratio": 1.1,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-06": {
       "date": "2026-06-06",
@@ -576,7 +708,11 @@
       "race_5k_s": 987,
       "race_10k_s": 2069,
       "race_half_s": 4427,
-      "race_marathon_s": 9087
+      "race_marathon_s": 9087,
+      "training_status": "PRODUCTIVE_2",
+      "acwr_ratio": 1.1,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-05": {
       "date": "2026-06-05",
@@ -593,7 +729,11 @@
       "race_5k_s": 987,
       "race_10k_s": 2069,
       "race_half_s": 4426,
-      "race_marathon_s": 9082
+      "race_marathon_s": 9082,
+      "training_status": "PRODUCTIVE_2",
+      "acwr_ratio": 1.3,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-04": {
       "date": "2026-06-04",
@@ -610,7 +750,11 @@
       "race_5k_s": 986,
       "race_10k_s": 2068,
       "race_half_s": 4425,
-      "race_marathon_s": 9078
+      "race_marathon_s": 9078,
+      "training_status": "PRODUCTIVE_6",
+      "acwr_ratio": 1.4,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-03": {
       "date": "2026-06-03",
@@ -627,7 +771,11 @@
       "race_5k_s": 986,
       "race_10k_s": 2067,
       "race_half_s": 4423,
-      "race_marathon_s": 9073
+      "race_marathon_s": 9073,
+      "training_status": "PRODUCTIVE_6",
+      "acwr_ratio": 1.5,
+      "acwr_status": "HIGH",
+      "fitness_age": null
     },
     "2026-06-02": {
       "date": "2026-06-02",
@@ -644,7 +792,11 @@
       "race_5k_s": 988,
       "race_10k_s": 2069,
       "race_half_s": 4422,
-      "race_marathon_s": 9069
+      "race_marathon_s": 9069,
+      "training_status": "PRODUCTIVE_2",
+      "acwr_ratio": 1.2,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-06-01": {
       "date": "2026-06-01",
@@ -661,7 +813,11 @@
       "race_5k_s": 987,
       "race_10k_s": 2068,
       "race_half_s": 4421,
-      "race_marathon_s": 9064
+      "race_marathon_s": 9064,
+      "training_status": "PRODUCTIVE_2",
+      "acwr_ratio": 1.3,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-31": {
       "date": "2026-05-31",
@@ -678,7 +834,11 @@
       "race_5k_s": 987,
       "race_10k_s": 2067,
       "race_half_s": 4420,
-      "race_marathon_s": 9059
+      "race_marathon_s": 9059,
+      "training_status": "PRODUCTIVE_2",
+      "acwr_ratio": 1.3,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-30": {
       "date": "2026-05-30",
@@ -695,7 +855,11 @@
       "race_5k_s": 989,
       "race_10k_s": 2072,
       "race_half_s": 4420,
-      "race_marathon_s": 9057
+      "race_marathon_s": 9057,
+      "training_status": "PRODUCTIVE_2",
+      "acwr_ratio": 1.1,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-29": {
       "date": "2026-05-29",
@@ -712,7 +876,11 @@
       "race_5k_s": 989,
       "race_10k_s": 2071,
       "race_half_s": 4419,
-      "race_marathon_s": 9052
+      "race_marathon_s": 9052,
+      "training_status": "PRODUCTIVE_2",
+      "acwr_ratio": 1.3,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-28": {
       "date": "2026-05-28",
@@ -729,7 +897,11 @@
       "race_5k_s": 990,
       "race_10k_s": 2072,
       "race_half_s": 4418,
-      "race_marathon_s": 9048
+      "race_marathon_s": 9048,
+      "training_status": "UNPRODUCTIVE_4",
+      "acwr_ratio": 1.1,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-27": {
       "date": "2026-05-27",
@@ -746,7 +918,11 @@
       "race_5k_s": 990,
       "race_10k_s": 2071,
       "race_half_s": 4417,
-      "race_marathon_s": 9043
+      "race_marathon_s": 9043,
+      "training_status": "UNPRODUCTIVE_4",
+      "acwr_ratio": 1.3,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-26": {
       "date": "2026-05-26",
@@ -763,7 +939,11 @@
       "race_5k_s": 990,
       "race_10k_s": 2071,
       "race_half_s": 4415,
-      "race_marathon_s": 9038
+      "race_marathon_s": 9038,
+      "training_status": "UNPRODUCTIVE_4",
+      "acwr_ratio": 1.2,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-25": {
       "date": "2026-05-25",
@@ -780,7 +960,11 @@
       "race_5k_s": 989,
       "race_10k_s": 2070,
       "race_half_s": 4414,
-      "race_marathon_s": 9033
+      "race_marathon_s": 9033,
+      "training_status": "UNPRODUCTIVE_4",
+      "acwr_ratio": 1.2,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-24": {
       "date": "2026-05-24",
@@ -797,7 +981,11 @@
       "race_5k_s": 988,
       "race_10k_s": 2070,
       "race_half_s": 4412,
-      "race_marathon_s": 9028
+      "race_marathon_s": 9028,
+      "training_status": "UNPRODUCTIVE_4",
+      "acwr_ratio": 1.3,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-23": {
       "date": "2026-05-23",
@@ -814,7 +1002,11 @@
       "race_5k_s": 986,
       "race_10k_s": 2065,
       "race_half_s": 4411,
-      "race_marathon_s": 9023
+      "race_marathon_s": 9023,
+      "training_status": "UNPRODUCTIVE_4",
+      "acwr_ratio": 1.5,
+      "acwr_status": "HIGH",
+      "fitness_age": null
     },
     "2026-05-22": {
       "date": "2026-05-22",
@@ -831,7 +1023,11 @@
       "race_5k_s": 984,
       "race_10k_s": 2062,
       "race_half_s": 4410,
-      "race_marathon_s": 9018
+      "race_marathon_s": 9018,
+      "training_status": "UNPRODUCTIVE_4",
+      "acwr_ratio": 1.4,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-21": {
       "date": "2026-05-21",
@@ -848,7 +1044,11 @@
       "race_5k_s": 984,
       "race_10k_s": 2062,
       "race_half_s": 4408,
-      "race_marathon_s": 9014
+      "race_marathon_s": 9014,
+      "training_status": "UNPRODUCTIVE_4",
+      "acwr_ratio": 1.5,
+      "acwr_status": "HIGH",
+      "fitness_age": null
     },
     "2026-05-20": {
       "date": "2026-05-20",
@@ -865,7 +1065,11 @@
       "race_5k_s": 997,
       "race_10k_s": 2070,
       "race_half_s": 4408,
-      "race_marathon_s": 9010
+      "race_marathon_s": 9010,
+      "training_status": "UNPRODUCTIVE_4",
+      "acwr_ratio": 1.3,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-19": {
       "date": "2026-05-19",
@@ -882,7 +1086,11 @@
       "race_5k_s": 997,
       "race_10k_s": 2069,
       "race_half_s": 4407,
-      "race_marathon_s": 9006
+      "race_marathon_s": 9006,
+      "training_status": "UNPRODUCTIVE_4",
+      "acwr_ratio": 1.4,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-18": {
       "date": "2026-05-18",
@@ -899,7 +1107,11 @@
       "race_5k_s": 996,
       "race_10k_s": 2069,
       "race_half_s": 4405,
-      "race_marathon_s": 9001
+      "race_marathon_s": 9001,
+      "training_status": "PRODUCTIVE_2",
+      "acwr_ratio": 1.3,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-17": {
       "date": "2026-05-17",
@@ -916,7 +1128,11 @@
       "race_5k_s": 994,
       "race_10k_s": 2069,
       "race_half_s": 4404,
-      "race_marathon_s": 8996
+      "race_marathon_s": 8996,
+      "training_status": "PRODUCTIVE_2",
+      "acwr_ratio": 1.3,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-16": {
       "date": "2026-05-16",
@@ -933,7 +1149,11 @@
       "race_5k_s": 993,
       "race_10k_s": 2069,
       "race_half_s": 4404,
-      "race_marathon_s": 8996
+      "race_marathon_s": 8996,
+      "training_status": "PRODUCTIVE_2",
+      "acwr_ratio": 1.4,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-15": {
       "date": "2026-05-15",
@@ -950,7 +1170,11 @@
       "race_5k_s": 991,
       "race_10k_s": 2069,
       "race_half_s": 4404,
-      "race_marathon_s": 8996
+      "race_marathon_s": 8996,
+      "training_status": "MAINTAINING_2",
+      "acwr_ratio": 1.2,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-14": {
       "date": "2026-05-14",
@@ -967,7 +1191,11 @@
       "race_5k_s": 989,
       "race_10k_s": 2068,
       "race_half_s": 4404,
-      "race_marathon_s": 8996
+      "race_marathon_s": 8996,
+      "training_status": "MAINTAINING_2",
+      "acwr_ratio": 1.2,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-13": {
       "date": "2026-05-13",
@@ -984,7 +1212,11 @@
       "race_5k_s": 987,
       "race_10k_s": 2064,
       "race_half_s": 4404,
-      "race_marathon_s": 8996
+      "race_marathon_s": 8996,
+      "training_status": "MAINTAINING_2",
+      "acwr_ratio": 1.1,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-12": {
       "date": "2026-05-12",
@@ -1001,7 +1233,11 @@
       "race_5k_s": 984,
       "race_10k_s": 2061,
       "race_half_s": 4404,
-      "race_marathon_s": 8996
+      "race_marathon_s": 8996,
+      "training_status": "MAINTAINING_2",
+      "acwr_ratio": 1.0,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-11": {
       "date": "2026-05-11",
@@ -1018,7 +1254,11 @@
       "race_5k_s": 982,
       "race_10k_s": 2055,
       "race_half_s": 4404,
-      "race_marathon_s": 8996
+      "race_marathon_s": 8996,
+      "training_status": "MAINTAINING_2",
+      "acwr_ratio": 0.9,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-10": {
       "date": "2026-05-10",
@@ -1035,7 +1275,11 @@
       "race_5k_s": 982,
       "race_10k_s": 2056,
       "race_half_s": 4404,
-      "race_marathon_s": 8996
+      "race_marathon_s": 8996,
+      "training_status": "MAINTAINING_2",
+      "acwr_ratio": 0.7,
+      "acwr_status": "LOW",
+      "fitness_age": null
     },
     "2026-05-09": {
       "date": "2026-05-09",
@@ -1052,7 +1296,11 @@
       "race_5k_s": 979,
       "race_10k_s": 2051,
       "race_half_s": 4404,
-      "race_marathon_s": 8996
+      "race_marathon_s": 8996,
+      "training_status": "MAINTAINING_2",
+      "acwr_ratio": 0.8,
+      "acwr_status": "OPTIMAL",
+      "fitness_age": null
     },
     "2026-05-08": {
       "date": "2026-05-08",
@@ -1069,7 +1317,11 @@
       "race_5k_s": 977,
       "race_10k_s": 2047,
       "race_half_s": 4404,
-      "race_marathon_s": 8996
+      "race_marathon_s": 8996,
+      "training_status": "RECOVERY_2",
+      "acwr_ratio": 0.7,
+      "acwr_status": "LOW",
+      "fitness_age": null
     }
   },
   "activities": {
@@ -1985,5 +2237,17 @@
       "avg_hr": 154.0,
       "calories": 416.0
     }
+  },
+  "profile": {
+    "lactate_threshold_hr": 191,
+    "gear": [
+      {
+        "name": "Glider",
+        "type": "Other",
+        "status": "active",
+        "total_distance_m": 8767.692810155777,
+        "total_activities": 7
+      }
+    ]
   }
 }

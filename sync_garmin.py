@@ -81,6 +81,8 @@ def wellness_fields(garmin: Garmin, day: date, race_by_date: dict | None = None)
     hrv = safe(lambda: garmin.get_hrv_data(cdate)) or {}
     readiness = safe(lambda: garmin.get_training_readiness(cdate)) or []
     max_metrics = safe(lambda: garmin.get_max_metrics(cdate)) or []
+    training_status = safe(lambda: garmin.get_training_status(cdate)) or {}
+    fitness_age = safe(lambda: garmin.get_fitnessage_data(cdate)) or {}
 
     daily_sleep = (sleep or {}).get("dailySleepDTO") or {}
     sleep_scores = daily_sleep.get("sleepScores") or {}
@@ -102,6 +104,19 @@ def wellness_fields(garmin: Garmin, day: date, race_by_date: dict | None = None)
 
     race = (race_by_date or {}).get(cdate) or {}
 
+    status_phrase = None
+    acwr_ratio = None
+    acwr_status = None
+    latest_status = (training_status.get("mostRecentTrainingStatus") or {}).get("latestTrainingStatusData") or {}
+    if isinstance(latest_status, dict) and latest_status:
+        device_data = next(iter(latest_status.values()))
+        status_phrase = device_data.get("trainingStatusFeedbackPhrase")
+        acute = device_data.get("acuteTrainingLoadDTO") or {}
+        acwr_ratio = acute.get("dailyAcuteChronicWorkloadRatio")
+        acwr_status = acute.get("acwrStatus")
+
+    fitness_age_value = fitness_age.get("fitnessAge") if isinstance(fitness_age, dict) else None
+
     return {
         "date": cdate,
         "resting_hr": stats.get("restingHeartRate"),
@@ -118,6 +133,10 @@ def wellness_fields(garmin: Garmin, day: date, race_by_date: dict | None = None)
         "race_10k_s": race.get("time10K"),
         "race_half_s": race.get("timeHalfMarathon"),
         "race_marathon_s": race.get("timeMarathon"),
+        "training_status": status_phrase,
+        "acwr_ratio": acwr_ratio,
+        "acwr_status": acwr_status,
+        "fitness_age": fitness_age_value,
     }
 
 
@@ -146,6 +165,12 @@ def render_wellness_note(f: dict) -> str:
         lines.append(f"- Training readiness: {f['training_readiness']}")
     if f["vo2max"] is not None:
         lines.append(f"- VO2 max: {f['vo2max']}")
+    if f.get("training_status"):
+        lines.append(f"- Training status: {f['training_status'].replace('_', ' ').title()}")
+    if f.get("acwr_ratio") is not None:
+        lines.append(f"- Acute:chronic workload ratio: {f['acwr_ratio']:.2f} ({f.get('acwr_status')})")
+    if f.get("fitness_age") is not None:
+        lines.append(f"- Fitness age: {f['fitness_age']}")
     if f["race_marathon_s"] is not None:
         lines.append(
             f"- Predicted race times: 5K {fmt_race(f['race_5k_s'])}, "
@@ -207,6 +232,30 @@ def render_activity_note(f: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def profile_fields(garmin: Garmin) -> dict:
+    """One-time-per-sync facts: lactate threshold + registered gear mileage."""
+    profile = safe(lambda: garmin.get_user_profile()) or {}
+    user_data = profile.get("userData") or {}
+    lactate_threshold_hr = user_data.get("lactateThresholdHeartRate")
+
+    gear = []
+    user_id = profile.get("id")
+    if user_id:
+        gear_list = safe(lambda: garmin.get_gear(str(user_id))) or []
+        for item in gear_list:
+            uuid = item.get("uuid")
+            stats = (safe(lambda: garmin.get_gear_stats(uuid)) or {}) if uuid else {}
+            gear.append({
+                "name": item.get("displayName") or item.get("customMakeModel") or "Gear",
+                "type": item.get("gearTypeName"),
+                "status": item.get("gearStatusName"),
+                "total_distance_m": stats.get("totalDistance"),
+                "total_activities": stats.get("totalActivities"),
+            })
+
+    return {"lactate_threshold_hr": lactate_threshold_hr, "gear": gear}
+
+
 def sync(garmin: Garmin, days: int, out_dir: str, dry_run: bool) -> None:
     out = Path(out_dir)
     today = date.today()
@@ -243,6 +292,8 @@ def sync(garmin: Garmin, days: int, out_dir: str, dry_run: bool) -> None:
     for a in activities:
         (act_dir / a["file"]).write_text(render_activity_note(a), encoding="utf-8")
 
+    profile = profile_fields(garmin)
+
     json_path = out / "data.json"
     existing = {"wellness": {}, "activities": {}}
     if json_path.exists():
@@ -254,6 +305,7 @@ def sync(garmin: Garmin, days: int, out_dir: str, dry_run: bool) -> None:
         existing["wellness"][f["date"]] = f
     for a in activities:
         existing["activities"][a["file"]] = a
+    existing["profile"] = profile
 
     json_path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
     print(f"Wrote {len(wellness)} daily notes and {len(activities)} activity notes to {out}/")
