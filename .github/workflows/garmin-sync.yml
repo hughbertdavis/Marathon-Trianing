@@ -3,7 +3,7 @@ name: Garmin sync
 on:
   workflow_dispatch: {}
   schedule:
-    - cron: "0 11 * * *" # 11:00 UTC daily; adjust for your timezone
+    - cron: "0 13 * * *" # 13:00 UTC = 7:00am Mountain (MDT) / 6:00am Mountain (MST)
 
 permissions:
   contents: write
