@@ -97,8 +97,10 @@ def wellness_fields(garmin: Garmin, day: date, race_by_date: dict | None = None)
         readiness_score = readiness[0].get("score")
 
     vo2max = None
+    heat_altitude = None
     if isinstance(max_metrics, list) and max_metrics:
         vo2max = (max_metrics[0].get("generic") or {}).get("vo2MaxValue")
+        heat_altitude = max_metrics[0].get("heatAltitudeAcclimation")
 
     avg_stress = stats.get("averageStressLevel")
 
@@ -123,6 +125,14 @@ def wellness_fields(garmin: Garmin, day: date, race_by_date: dict | None = None)
         "hrv_overnight": last_night_hrv,
         "sleep_hours": (sleep_seconds / 3600) if sleep_seconds else None,
         "sleep_score": overall_score,
+        "nap_minutes": (daily_sleep.get("napTimeSeconds") or 0) / 60 or None,
+        "deep_sleep_h": (daily_sleep.get("deepSleepSeconds") / 3600) if daily_sleep.get("deepSleepSeconds") else None,
+        "light_sleep_h": (daily_sleep.get("lightSleepSeconds") / 3600) if daily_sleep.get("lightSleepSeconds") else None,
+        "rem_sleep_h": (daily_sleep.get("remSleepSeconds") / 3600) if daily_sleep.get("remSleepSeconds") else None,
+        "awake_h": (daily_sleep.get("awakeSleepSeconds") / 3600) if daily_sleep.get("awakeSleepSeconds") else None,
+        "avg_spo2": daily_sleep.get("avgSpO2"),
+        "avg_respiration": daily_sleep.get("avgRespirationValue"),
+        "heat_altitude_acclimation": heat_altitude,
         "body_battery_low": stats.get("bodyBatteryLowestValue"),
         "body_battery_high": stats.get("bodyBatteryHighestValue"),
         "avg_stress": avg_stress if (avg_stress is not None and avg_stress >= 0) else None,
@@ -169,6 +179,20 @@ def render_wellness_note(f: dict) -> str:
     if f["sleep_hours"]:
         score_str = f" (score {f['sleep_score']})" if f["sleep_score"] is not None else ""
         lines.append(f"- Sleep: {f['sleep_hours']:.1f} h{score_str}")
+    if f.get("deep_sleep_h") or f.get("light_sleep_h") or f.get("rem_sleep_h"):
+        lines.append(
+            f"- Sleep stages: deep {f.get('deep_sleep_h') or 0:.1f}h, "
+            f"light {f.get('light_sleep_h') or 0:.1f}h, rem {f.get('rem_sleep_h') or 0:.1f}h, "
+            f"awake {f.get('awake_h') or 0:.1f}h"
+        )
+    if f.get("nap_minutes"):
+        lines.append(f"- Nap: {f['nap_minutes']:.0f} min")
+    if f.get("avg_spo2") is not None:
+        lines.append(f"- Avg SpO2: {f['avg_spo2']}%")
+    if f.get("avg_respiration") is not None:
+        lines.append(f"- Avg respiration: {f['avg_respiration']:.1f} breaths/min")
+    if f.get("heat_altitude_acclimation") is not None:
+        lines.append(f"- Heat/altitude acclimation: {f['heat_altitude_acclimation']}")
     if f["body_battery_low"] is not None and f["body_battery_high"] is not None:
         lines.append(f"- Body battery: {f['body_battery_low']} -> {f['body_battery_high']}")
     if f["avg_stress"] is not None:
@@ -247,7 +271,7 @@ def render_activity_note(f: dict) -> str:
 
 
 def profile_fields(garmin: Garmin) -> dict:
-    """One-time-per-sync facts: lactate threshold + registered gear mileage."""
+    """One-time-per-sync facts: lactate threshold, gear, weekly stress rollup, lifetime count."""
     profile = safe(lambda: garmin.get_user_profile()) or {}
     user_data = profile.get("userData") or {}
     lactate_threshold_hr = user_data.get("lactateThresholdHeartRate")
@@ -267,7 +291,17 @@ def profile_fields(garmin: Garmin) -> dict:
                 "total_activities": stats.get("totalActivities"),
             })
 
-    return {"lactate_threshold_hr": lactate_threshold_hr, "gear": gear}
+    weekly_stress_rows = safe(lambda: garmin.get_weekly_stress(date.today().isoformat(), weeks=80)) or []
+    weekly_stress = {row["calendarDate"]: row.get("value") for row in weekly_stress_rows if row.get("calendarDate")}
+
+    lifetime_activity_count = safe(lambda: garmin.count_activities())
+
+    return {
+        "lactate_threshold_hr": lactate_threshold_hr,
+        "gear": gear,
+        "weekly_stress": weekly_stress,
+        "lifetime_activity_count": lifetime_activity_count,
+    }
 
 
 def sync(garmin: Garmin, days: int, out_dir: str, dry_run: bool) -> None:

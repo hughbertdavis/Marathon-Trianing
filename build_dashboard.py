@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Build docs/index.html from garmin/data.json -- weekly training + recovery dashboard.
+"""Build the multi-page docs/ site from garmin/data.json.
 
-Clicking any point on any chart switches every card, the race predictor, and the
-activity list to that week (see the render() function in the embedded <script>).
+Pages: index (menu + race countdown), training, recovery, altitude, lifetime.
+Clicking any point on a weekly chart switches every card (and race predictor /
+activity list, on the training page) on that page to that week.
 """
 
 import json
@@ -12,7 +13,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DATA_PATH = HERE / "garmin" / "data.json"
-OUT_PATH = HERE / "docs" / "index.html"
+OUT_PATH = HERE / "docs" / "index.html"  # OUT_PATH.parent is the docs/ output dir
 
 METERS_PER_MILE = 1609.344
 METERS_PER_FOOT = 0.3048
@@ -145,6 +146,17 @@ def bucket_weeks(data: dict) -> list:
             "acwr_ratio": avg(wel, "acwr_ratio"),
             "acwr_status": latest(wel, "acwr_status"),
             "fitness_age": latest(wel, "fitness_age"),
+            "resting_hr": avg(wel, "resting_hr"),
+            "body_battery_low": avg(wel, "body_battery_low"),
+            "body_battery_high": avg(wel, "body_battery_high"),
+            "deep_sleep_h": avg(wel, "deep_sleep_h"),
+            "light_sleep_h": avg(wel, "light_sleep_h"),
+            "rem_sleep_h": avg(wel, "rem_sleep_h"),
+            "awake_h": avg(wel, "awake_h"),
+            "nap_minutes": avg(wel, "nap_minutes"),
+            "avg_spo2": avg(wel, "avg_spo2"),
+            "avg_respiration": avg(wel, "avg_respiration"),
+            "heat_altitude_acclimation": latest(wel, "heat_altitude_acclimation"),
             "n_activities": len(acts),
             "n_days_logged": len(wel),
             "activities": [activity_summary(a) for a in acts],
@@ -250,6 +262,52 @@ def compute_heatmap(data: dict) -> list:
         days.append({"date": iso, "miles": round(by_day.get(iso, 0.0), 2)})
         d += timedelta(days=1)
     return days
+
+
+def weekly_stress_series(data: dict) -> list:
+    profile = data.get("profile", {}) or {}
+    weekly = profile.get("weekly_stress") or {}
+    rows = sorted(weekly.items(), key=lambda kv: kv[0])
+    return [{"date": d, "value": v} for d, v in rows if v is not None]
+
+
+ACTIVITY_TYPE_LABELS = {
+    "running": "Running", "cycling": "Cycling", "hiking": "Hiking",
+    "swimming": "Swimming", "other": "Other",
+}
+
+
+def compute_lifetime_stats(data: dict) -> dict:
+    activities = list(data.get("activities", {}).values())
+    profile = data.get("profile", {}) or {}
+
+    total_distance_mi = sum((a.get("distance_m") or 0) for a in activities) / METERS_PER_MILE
+    total_vert_ft = sum((a.get("elevation_gain_m") or 0) for a in activities) / METERS_PER_FOOT
+    total_duration_s = sum((a.get("duration_s") or 0) for a in activities)
+
+    by_type = defaultdict(lambda: {"count": 0, "distance_mi": 0.0})
+    for a in activities:
+        t = (a.get("type") or "other").lower()
+        by_type[t]["count"] += 1
+        by_type[t]["distance_mi"] += (a.get("distance_m") or 0) / METERS_PER_MILE
+
+    types = [
+        {"type": ACTIVITY_TYPE_LABELS.get(t, t.replace("_", " ").title()), "count": v["count"], "distance_mi": v["distance_mi"]}
+        for t, v in sorted(by_type.items(), key=lambda kv: -kv[1]["count"])
+    ]
+
+    dates = sorted(a["date"] for a in activities if a.get("date"))
+
+    return {
+        "lifetime_activity_count": profile.get("lifetime_activity_count"),
+        "synced_activity_count": len(activities),
+        "total_distance_mi": total_distance_mi,
+        "total_vert_ft": total_vert_ft,
+        "total_duration_s": total_duration_s,
+        "by_type": types,
+        "earliest_synced": dates[0] if dates else None,
+        "latest_synced": dates[-1] if dates else None,
+    }
 
 
 def fmt(v, decimals=0):
@@ -544,42 +602,498 @@ def card_skeleton(slug, title, unit_label, chart_svg):
     </div>'''
 
 
-def build_html(data: dict, weeks: list) -> str:
+SLEEP_STAGES = [("deep", "deep_sleep_h"), ("light", "light_sleep_h"), ("rem", "rem_sleep_h"), ("awake", "awake_h")]
+
+
+def sleep_stage_chart(weeks: list, week_labels: list) -> str:
+    W, H = 280, 84
+    pad_l, pad_r, pad_t, pad_b = 8, 8, 10, 18
+    plot_w = W - pad_l - pad_r
+    plot_h = H - pad_t - pad_b
+    n = len(weeks)
+
+    totals = [sum((w.get(f) or 0) for _, f in SLEEP_STAGES) for w in weeks]
+    has_any = any(t > 0 for t in totals)
+    if not has_any or n < 2:
+        return f'<svg viewBox="0 0 {W} {H}" class="spark"><text x="{W/2}" y="{H/2}" class="spark-empty" text-anchor="middle">Not enough data yet</text></svg>'
+
+    vmax = max(totals) or 1
+    bar_w = plot_w / n * 0.55
+    baseline_y = pad_t + plot_h
+
+    svg = [f'<svg viewBox="0 0 {W} {H}" class="spark" role="img">']
+    svg.append(f'<line x1="{pad_l}" y1="{baseline_y}" x2="{W - pad_r}" y2="{baseline_y}" class="spark-grid" />')
+
+    for i, w in enumerate(weeks):
+        x = pad_l + (i / (n - 1)) * plot_w - bar_w / 2 if n > 1 else pad_l
+        y_cursor = baseline_y
+        last = (i == n - 1)
+        title_bits = ", ".join(f"{name} {w.get(f) or 0:.1f}h" for name, f in SLEEP_STAGES)
+        for name, f in SLEEP_STAGES:
+            v = w.get(f) or 0
+            if v <= 0:
+                continue
+            seg_h = (v / vmax) * plot_h
+            y_cursor -= seg_h
+            cls = f"stage-{name}" + (" selected" if last else "")
+            svg.append(
+                f'<rect x="{x:.1f}" y="{y_cursor:.1f}" width="{bar_w:.1f}" height="{seg_h:.1f}" '
+                f'class="{cls} pt" data-week="{i}" tabindex="0"><title>{week_labels[i]}: {title_bits}</title></rect>'
+            )
+
+    first_label = week_labels[0]
+    last_label = week_labels[-1]
+    svg.append(f'<text x="{pad_l}" y="{H - 4}" class="spark-tick" text-anchor="start">{first_label}</text>')
+    svg.append(f'<text x="{W - pad_r}" y="{H - 4}" class="spark-tick" text-anchor="end">{last_label}</text>')
+    svg.append("</svg>")
+    return "".join(svg)
+
+
+def static_line_chart(values, labels, decimals=0):
+    """Non-interactive trend chart for series on a different date grid than the weekly cards
+    (e.g. Garmin's own weekly-stress rollup) -- must not carry 'pt'/data-week, which would
+    wrongly trigger the click-to-switch-week handler with a mismatched index."""
+    W, H = 280, 84
+    pad_l, pad_r, pad_t, pad_b = 8, 8, 10, 18
+    plot_w = W - pad_l - pad_r
+    plot_h = H - pad_t - pad_b
+
+    pts = [(i, v) for i, v in enumerate(values) if v is not None]
+    if len(pts) < 2:
+        return f'<svg viewBox="0 0 {W} {H}" class="spark"><text x="{W/2}" y="{H/2}" class="spark-empty" text-anchor="middle">Not enough data yet</text></svg>'
+
+    vmin = min(v for _, v in pts)
+    vmax = max(v for _, v in pts)
+    if vmax == vmin:
+        vmax = vmin + 1
+
+    def x_of(i):
+        return pad_l + (i / (len(values) - 1)) * plot_w if len(values) > 1 else pad_l
+
+    def y_of(v):
+        return pad_t + plot_h - ((v - vmin) / (vmax - vmin)) * plot_h
+
+    baseline_y = pad_t + plot_h
+    svg = [f'<svg viewBox="0 0 {W} {H}" class="spark" role="img">']
+    svg.append(f'<line x1="{pad_l}" y1="{baseline_y}" x2="{W - pad_r}" y2="{baseline_y}" class="spark-grid" />')
+
+    path_pts = [(x_of(i), y_of(v)) for i, v in pts]
+    line_d = "M " + " L ".join(f"{x:.1f} {y:.1f}" for x, y in path_pts)
+    area_d = line_d + f" L {path_pts[-1][0]:.1f} {baseline_y} L {path_pts[0][0]:.1f} {baseline_y} Z"
+    svg.append(f'<path d="{area_d}" class="spark-area" />')
+    svg.append(f'<path d="{line_d}" class="spark-line" />')
+    for idx, (i, v) in enumerate(pts):
+        x, y = path_pts[idx]
+        last = (i == len(values) - 1)
+        r = 3.5 if last else 2
+        cls = "dot-current" if last else "dot"
+        svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" class="{cls}"><title>{labels[i]}: {fmt(v, decimals)}</title></circle>')
+
+    svg.append(f'<text x="{path_pts[0][0]:.1f}" y="{H - 4}" class="spark-tick" text-anchor="start">{labels[pts[0][0]]}</text>')
+    svg.append(f'<text x="{path_pts[-1][0]:.1f}" y="{H - 4}" class="spark-tick" text-anchor="end">{labels[pts[-1][0]]}</text>')
+    svg.append("</svg>")
+    return "".join(svg)
+
+
+def generated_timestamp() -> str:
+    now = datetime.now()
+    hour_12 = now.hour % 12 or 12
+    return f"{now.strftime('%A')}, {MONTH_ABBR[now.month - 1]} {now.day}, {now.year} - {hour_12}:{now.strftime('%M %p')}"
+
+
+NAV_PAGES = [
+    ("index.html", "Overview"),
+    ("training.html", "Training"),
+    ("recovery.html", "Recovery"),
+    ("altitude.html", "Altitude"),
+    ("lifetime.html", "Lifetime"),
+]
+
+
+def nav_html(active_file: str) -> str:
+    links = []
+    for href, label in NAV_PAGES:
+        cls = "navlink active" if href == active_file else "navlink"
+        links.append(f'<a class="{cls}" href="{href}">{label}</a>')
+    return f'<nav class="pagenav">{"".join(links)}</nav>'
+
+
+def page_shell(active_file: str, title: str, subtitle: str, body_html: str) -> str:
+    return f'''<meta charset="UTF-8"><title>{title} - Training Dashboard</title>{CSS}<div class="dashboard">
+  <header class="topbar">
+    <div class="topbar-title">
+      <h1>Training Dashboard</h1>
+      <p class="subtitle">{subtitle}</p>
+    </div>
+    <div class="topbar-meta">Last updated<br><strong>{generated_timestamp()}</strong></div>
+  </header>
+  {nav_html(active_file)}
+  {body_html}
+  <footer class="foot">Built from your Garmin data - say "update my dashboard" to refresh.</footer>
+</div>'''
+
+
+def render_index(data: dict, weeks: list) -> str:
+    menu_cards = "".join(
+        f'''
+    <a class="menu-card" href="{href}">
+      <div class="menu-title">{label}</div>
+      <div class="menu-desc">{desc}</div>
+    </a>'''
+        for href, label, desc in [
+            ("training.html", "Training", "Weekly volume, vert, HR, VO2 max, ACWR, race predictor, PRs, and activities"),
+            ("recovery.html", "Recovery", "Sleep, sleep stages, HRV, resting HR, body battery, stress, naps"),
+            ("altitude.html", "Altitude", "Heat and altitude acclimation"),
+            ("lifetime.html", "Lifetime", "All-time totals across your full Garmin history"),
+        ]
+    )
+    body = f'''
+  {build_race_countdown(weeks)}
+  <div class="menu-grid">{menu_cards}</div>
+  {build_fitness_facts(data, weeks)}'''
+    subtitle = weeks[-1]["week_label"] if weeks else ""
+    return page_shell("index.html", "Overview", f"Week of {subtitle}" if subtitle else "", body)
+
+
+def render_script(weeks: list, metrics: list, include_race_predictor: bool, include_activities: bool, extra_js: str = "") -> str:
+    weeks_json = json.dumps(weeks).replace("</", "<\\/")
+    metrics_json = json.dumps(metrics)
+
+    race_js = """
+    ['5k', '10k', 'half', 'marathon'].forEach(function (k) {
+      var el = document.getElementById('race-' + k + '-value');
+      if (el) el.textContent = fmtRace(week['race_' + k]);
+    });""" if include_race_predictor else ""
+
+    activities_js = """
+    var list = document.getElementById('activities-list');
+    if (list) {
+      if (!week.activities.length) {
+        list.innerHTML = '<p class="empty">No activities this week.</p>';
+      } else {
+        list.innerHTML = week.activities.map(function (act) {
+          return '<div class="activity-row">' +
+            '<div class="activity-main"><span class="activity-name">' + act.name + '</span>' +
+            '<span class="activity-type">' + act.type + '</span></div>' +
+            '<div class="activity-stats">' +
+            '<span>' + act.date + '</span>' +
+            '<span>' + (act.distance_mi != null ? act.distance_mi.toFixed(2) + ' mi' : '–') + '</span>' +
+            '<span>' + fmtDuration(act.duration_s) + '</span>' +
+            '<span>' + fmtPace(act.pace_s_per_mi) + (act.gap_s_per_mi != null && Math.abs(act.gap_s_per_mi - act.pace_s_per_mi) > 1 ? ' <span class="activity-gap">(GAP ' + fmtPace(act.gap_s_per_mi) + ')</span>' : '') + '</span>' +
+            '<span>' + (act.elevation_ft != null ? Math.round(act.elevation_ft) + ' ft' : '–') + '</span>' +
+            '<span>' + (act.avg_hr != null ? Math.round(act.avg_hr) + ' bpm' : '–') + '</span>' +
+            '</div></div>';
+        }).join('');
+      }
+    }""" if include_activities else ""
+
+    return f"""<script id="weeks-data" type="application/json">{weeks_json}</script>
+<script>
+(function () {{
+  var WEEKS = JSON.parse(document.getElementById('weeks-data').textContent);
+  var METRICS = {metrics_json};
+  var selected = WEEKS.length - 1;
+
+  function acwrPill(status) {{
+    if (!status) return {{ cls: '', text: '' }};
+    var key = status.toUpperCase();
+    var cls = key === 'HIGH' ? 'bad' : key === 'LOW' ? 'warn' : 'good';
+    return {{ cls: cls, text: key.charAt(0) + key.slice(1).toLowerCase() }};
+  }}
+
+  function fmtNum(v, decimals) {{
+    if (v === null || v === undefined) return '–';
+    return Number(v).toLocaleString(undefined, {{ minimumFractionDigits: decimals, maximumFractionDigits: decimals }});
+  }}
+
+  function fmtRace(sec) {{
+    if (sec === null || sec === undefined) return '–';
+    sec = Math.round(sec);
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    var mm = String(m).padStart(2, '0'), ss = String(s).padStart(2, '0');
+    return h > 0 ? (h + ':' + mm + ':' + ss) : (m + ':' + ss);
+  }}
+
+  function fmtPace(secPerMi) {{
+    if (secPerMi === null || secPerMi === undefined || !isFinite(secPerMi)) return '–';
+    var m = Math.floor(secPerMi / 60), s = Math.round(secPerMi % 60);
+    return m + ':' + String(s).padStart(2, '0') + '/mi';
+  }}
+
+  function fmtDuration(s) {{
+    if (!s) return '–';
+    var h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
+    return h > 0 ? (h + 'h ' + m + 'm') : (m + 'm');
+  }}
+
+  function badgeState(cur, prev, higherBetter, isPartial) {{
+    if (isPartial) return {{ cls: 'flat', text: 'so far' }};
+    if (cur == null || prev == null || prev === 0) return {{ cls: '', text: '' }};
+    var diff = cur - prev;
+    var pct = (diff / Math.abs(prev)) * 100;
+    if (Math.abs(pct) < 1) return {{ cls: 'flat', text: 'flat' }};
+    var up = diff > 0;
+    var good = higherBetter ? up : !up;
+    var arrow = up ? '↑' : '↓';
+    return {{ cls: good ? 'good' : 'bad', text: arrow + ' ' + Math.abs(pct).toFixed(0) + '%' }};
+  }}
+
+  function render(i) {{
+    selected = i;
+    var week = WEEKS[i];
+    var prev = i > 0 ? WEEKS[i - 1] : null;
+    var isPartial = !!week.is_current;
+
+    var pts = document.querySelectorAll('.pt.selected');
+    for (var p = 0; p < pts.length; p++) pts[p].classList.remove('selected');
+    var active = document.querySelectorAll('.pt[data-week="' + i + '"]');
+    for (var a = 0; a < active.length; a++) active[a].classList.add('selected');
+
+    METRICS.forEach(function (m) {{
+      var valEl = document.getElementById(m.slug + '-value');
+      var badgeEl = document.getElementById(m.slug + '-badge');
+      if (valEl) valEl.textContent = fmtNum(week[m.field], m.decimals);
+      if (badgeEl) {{
+        var state = m.statusField ? acwrPill(week[m.statusField]) : badgeState(week[m.field], prev ? prev[m.field] : null, m.higherBetter, isPartial);
+        badgeEl.className = 'delta' + (state.cls ? ' ' + state.cls : '');
+        badgeEl.textContent = state.text;
+      }}
+    }});
+    {race_js}
+
+    var note = document.getElementById('week-note');
+    if (note) {{
+      var partialStr = isPartial ? ' (in progress)' : '';
+      note.textContent = 'Week of ' + week.week_label + partialStr + ' – ' + week.n_activities + ' activities logged, ' + week.n_days_logged + ' days of wellness data';
+    }}
+    {activities_js}
+    {extra_js}
+  }}
+
+  document.addEventListener('click', function (e) {{
+    var pt = e.target.closest('.pt');
+    if (!pt) return;
+    var idx = parseInt(pt.getAttribute('data-week'), 10);
+    if (!isNaN(idx)) render(idx);
+  }});
+  document.addEventListener('keydown', function (e) {{
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var pt = e.target.closest && e.target.closest('.pt');
+    if (!pt) return;
+    e.preventDefault();
+    var idx = parseInt(pt.getAttribute('data-week'), 10);
+    if (!isNaN(idx)) render(idx);
+  }});
+
+  if (WEEKS.length) render(selected);
+}})();
+</script>"""
+
+
+def render_training(data: dict, weeks: list) -> str:
     week_labels = [w["week_label"] for w in weeks]
 
     def series(field):
         return [w[field] for w in weeks]
 
-    training_cards = "".join([
+    cards = "".join([
         card_skeleton("volume", "Weekly Volume", "mi", sparkline(series("volume_mi"), week_labels, 1, "bar")),
         card_skeleton("vert", "Total Vert", "ft", sparkline(series("vert_ft"), week_labels, 0, "bar")),
         card_skeleton("hr", "Avg Heart Rate", "bpm", sparkline(series("avg_hr"), week_labels, 0, "line")),
         card_skeleton("vo2max", "VO2 Max", "", sparkline(series("vo2max"), week_labels, 1, "line")),
         card_skeleton("acwr", "Training Load (ACWR)", "", sparkline(series("acwr_ratio"), week_labels, 2, "line")),
     ])
-    recovery_cards = "".join([
+
+    metrics = [
+        {"slug": "volume", "field": "volume_mi", "decimals": 1, "higherBetter": True},
+        {"slug": "vert", "field": "vert_ft", "decimals": 0, "higherBetter": True},
+        {"slug": "hr", "field": "avg_hr", "decimals": 0, "higherBetter": False},
+        {"slug": "vo2max", "field": "vo2max", "decimals": 1, "higherBetter": True},
+        {"slug": "acwr", "field": "acwr_ratio", "decimals": 2, "statusField": "acwr_status"},
+    ]
+
+    body = f'''
+  <div class="card-grid single-col side-training">{cards}</div>
+
+  <div class="race-panel">
+    <h2>Race Predictor</h2>
+    <div class="race-grid">
+      <div class="race-item"><div class="race-label">5K</div><div class="race-value" id="race-5k-value">–</div></div>
+      <div class="race-item"><div class="race-label">10K</div><div class="race-value" id="race-10k-value">–</div></div>
+      <div class="race-item"><div class="race-label">Half Marathon</div><div class="race-value" id="race-half-value">–</div></div>
+      <div class="race-item"><div class="race-label">Marathon</div><div class="race-value" id="race-marathon-value">–</div></div>
+    </div>
+  </div>
+
+  {build_personal_records(data)}
+
+  {build_heatmap(data)}
+
+  <div class="activities-panel">
+    <h2>Activities This Week</h2>
+    <div id="activities-list"></div>
+  </div>
+
+  {render_script(weeks, metrics, include_race_predictor=True, include_activities=True)}'''
+
+    subtitle_id = '<span id="week-note"></span>'
+    return page_shell("training.html", "Training", subtitle_id, body)
+
+
+def render_recovery(data: dict, weeks: list) -> str:
+    week_labels = [w["week_label"] for w in weeks]
+
+    def series(field):
+        return [w[field] for w in weeks]
+
+    cards = "".join([
         card_skeleton("sleep", "Sleep", "h", sparkline(series("sleep_h"), week_labels, 1, "line")),
+        card_skeleton("rhr", "Resting HR", "bpm", sparkline(series("resting_hr"), week_labels, 0, "line")),
         card_skeleton("hrv", "HRV", "ms", sparkline(series("hrv_ms"), week_labels, 0, "line")),
         card_skeleton("readiness", "Training Readiness", "", sparkline(series("readiness"), week_labels, 0, "line")),
+        card_skeleton("battery", "Body Battery (peak)", "", sparkline(series("body_battery_high"), week_labels, 0, "line")),
+        card_skeleton("naps", "Naps", "min", sparkline(series("nap_minutes"), week_labels, 0, "bar")),
+        card_skeleton("spo2", "SpO2", "%", sparkline(series("avg_spo2"), week_labels, 0, "line")),
+        card_skeleton("respiration", "Respiration", "brpm", sparkline(series("avg_respiration"), week_labels, 1, "line")),
     ])
 
-    now = datetime.now()
-    hour_12 = now.hour % 12 or 12
-    generated = f"{now.strftime('%A')}, {MONTH_ABBR[now.month - 1]} {now.day}, {now.year} - {hour_12}:{now.strftime('%M %p')}"
+    sleep_stage_card = f'''
+    <div class="card wide">
+      <div class="card-head"><span class="card-title">Sleep Stages</span></div>
+      <div class="stage-legend">
+        <span><i class="swatch stage-deep"></i>Deep <b id="stage-deep-value">–</b></span>
+        <span><i class="swatch stage-light"></i>Light <b id="stage-light-value">–</b></span>
+        <span><i class="swatch stage-rem"></i>REM <b id="stage-rem-value">–</b></span>
+        <span><i class="swatch stage-awake"></i>Awake <b id="stage-awake-value">–</b></span>
+      </div>
+      {sleep_stage_chart(weeks, week_labels)}
+    </div>'''
 
-    weeks_json = json.dumps(weeks).replace("</", "<\\/")
+    stress_dates = [row["date"] for row in weekly_stress_series(data)]
+    stress_values = [row["value"] for row in weekly_stress_series(data)]
+    stress_labels = [f"{MONTH_ABBR[datetime.strptime(d, '%Y-%m-%d').month - 1]} {datetime.strptime(d, '%Y-%m-%d').day}" for d in stress_dates]
+    stress_section = ""
+    if stress_values:
+        stress_section = f'''
+  <div class="pr-panel">
+    <h2>Weekly Stress (Garmin rollup)</h2>
+    {static_line_chart(stress_values, stress_labels, 0)}
+  </div>'''
 
-    return (
-        HTML_TEMPLATE
-        .replace("{{generated}}", generated)
-        .replace("{{training_cards}}", training_cards)
-        .replace("{{recovery_cards}}", recovery_cards)
-        .replace("{{race_countdown}}", build_race_countdown(weeks))
-        .replace("{{personal_records}}", build_personal_records(data))
-        .replace("{{fitness_facts}}", build_fitness_facts(data, weeks))
-        .replace("{{heatmap}}", build_heatmap(data))
-        .replace("__WEEKS_JSON__", weeks_json)
+    metrics = [
+        {"slug": "sleep", "field": "sleep_h", "decimals": 1, "higherBetter": True},
+        {"slug": "rhr", "field": "resting_hr", "decimals": 0, "higherBetter": False},
+        {"slug": "hrv", "field": "hrv_ms", "decimals": 0, "higherBetter": True},
+        {"slug": "readiness", "field": "readiness", "decimals": 0, "higherBetter": True},
+        {"slug": "battery", "field": "body_battery_high", "decimals": 0, "higherBetter": True},
+        {"slug": "naps", "field": "nap_minutes", "decimals": 0, "higherBetter": True},
+        {"slug": "spo2", "field": "avg_spo2", "decimals": 0, "higherBetter": True},
+        {"slug": "respiration", "field": "avg_respiration", "decimals": 1, "higherBetter": False},
+    ]
+
+    stage_js = """
+    [['deep', 'deep_sleep_h'], ['light', 'light_sleep_h'], ['rem', 'rem_sleep_h'], ['awake', 'awake_h']].forEach(function (pair) {
+      var el = document.getElementById('stage-' + pair[0] + '-value');
+      if (el) {
+        var v = week[pair[1]];
+        el.textContent = (v != null ? v.toFixed(1) + 'h' : '–');
+      }
+    });"""
+
+    body = f'''
+  <div class="card-grid single-col side-recovery">{cards}{sleep_stage_card}</div>
+  {stress_section}
+  {render_script(weeks, metrics, include_race_predictor=False, include_activities=False, extra_js=stage_js)}'''
+
+    subtitle_id = '<span id="week-note"></span>'
+    return page_shell("recovery.html", "Recovery", subtitle_id, body)
+
+
+def render_altitude(data: dict) -> str:
+    wellness = data.get("wellness", {}) or {}
+    entries = sorted(
+        ((d, w.get("heat_altitude_acclimation")) for d, w in wellness.items() if w.get("heat_altitude_acclimation") is not None),
+        key=lambda kv: kv[0],
     )
+
+    if not entries:
+        body = '''
+  <div class="pr-panel">
+    <h2>Heat &amp; Altitude Acclimation</h2>
+    <p class="empty">
+      Garmin hasn't computed a heat/altitude acclimation score for this account yet.
+      This feature populates after the device detects training in hot conditions or
+      at elevation for several consecutive days -- worth checking back on as your
+      Colorado training block progresses.
+    </p>
+  </div>'''
+    else:
+        rows = "".join(
+            f'<div class="activity-row"><span>{d}</span><span>{v}</span></div>' for d, v in entries[-30:]
+        )
+        body = f'''
+  <div class="pr-panel">
+    <h2>Heat &amp; Altitude Acclimation</h2>
+    <div class="activities-panel">{rows}</div>
+  </div>'''
+
+    return page_shell("altitude.html", "Altitude", "Heat and altitude acclimation", body)
+
+
+def render_lifetime(data: dict) -> str:
+    stats = compute_lifetime_stats(data)
+
+    type_rows = "".join(
+        f'''
+      <div class="pr-item">
+        <div class="pr-label">{t["type"]}</div>
+        <div class="pr-value">{fmt(t["distance_mi"], 0)} mi</div>
+        <div class="pr-date">{t["count"]} activities</div>
+      </div>''' for t in stats["by_type"]
+    )
+
+    coverage_note = ""
+    if stats["lifetime_activity_count"] and stats["synced_activity_count"] < stats["lifetime_activity_count"]:
+        coverage_note = (
+            f'<p class="empty">Garmin reports {stats["lifetime_activity_count"]:,} lifetime activities total; '
+            f'this dashboard has synced the most recent {stats["synced_activity_count"]:,} '
+            f'(from {stats["earliest_synced"]} onward). Older history hasn\'t been pulled.</p>'
+        )
+
+    body = f'''
+  <div class="pr-panel">
+    <h2>All-Time Totals</h2>
+    <div class="pr-grid">
+      <div class="pr-item">
+        <div class="pr-label">Lifetime Activities (Garmin)</div>
+        <div class="pr-value">{fmt(stats["lifetime_activity_count"], 0) if stats["lifetime_activity_count"] else "–"}</div>
+      </div>
+      <div class="pr-item">
+        <div class="pr-label">Synced Activities</div>
+        <div class="pr-value">{stats["synced_activity_count"]:,}</div>
+      </div>
+      <div class="pr-item">
+        <div class="pr-label">Total Distance</div>
+        <div class="pr-value">{fmt(stats["total_distance_mi"], 0)} mi</div>
+      </div>
+      <div class="pr-item">
+        <div class="pr-label">Total Vert</div>
+        <div class="pr-value">{fmt(stats["total_vert_ft"], 0)} ft</div>
+      </div>
+      <div class="pr-item">
+        <div class="pr-label">Total Time</div>
+        <div class="pr-value">{fmt(stats["total_duration_s"] / 3600, 0)} h</div>
+      </div>
+    </div>
+    {coverage_note}
+  </div>
+
+  <div class="pr-panel">
+    <h2>By Activity Type (synced history)</h2>
+    <div class="pr-grid">{type_rows}</div>
+  </div>'''
+
+    return page_shell("lifetime.html", "Lifetime", "All-time totals across your Garmin history", body)
 
 
 CSS = """
@@ -828,204 +1342,78 @@ CSS = """
   .heat-4 { background: var(--training); }
 
   .foot { margin-top: 32px; text-align: center; font-size: 12px; color: var(--ink-muted); }
+
+  .pagenav {
+    display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .navlink {
+    padding: 8px 14px; font-size: 13px; font-weight: 600; color: var(--ink-muted);
+    text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .navlink:hover { color: var(--ink); }
+  .navlink.active { color: var(--training); border-bottom-color: var(--training); }
+
+  .menu-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;
+    margin: 24px 0;
+  }
+  .menu-card {
+    display: block; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 20px; text-decoration: none; color: var(--ink);
+    transition: border-color 0.15s ease;
+  }
+  .menu-card:hover { border-color: var(--training); }
+  .menu-title {
+    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    font-size: 19px; font-weight: 600; margin-bottom: 6px;
+  }
+  .menu-desc { font-size: 13px; color: var(--ink-muted); line-height: 1.4; }
+
+  .card-grid.single-col {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;
+  }
+  .card.wide { grid-column: 1 / -1; }
+
+  .stage-legend {
+    display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-muted);
+    margin-bottom: 8px;
+  }
+  .stage-legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .swatch {
+    display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px;
+  }
+  .swatch.stage-deep { background: var(--recovery); }
+  .swatch.stage-light { background: color-mix(in srgb, var(--recovery) 55%, var(--surface-2)); }
+  .swatch.stage-rem { background: var(--training); }
+  .swatch.stage-awake { background: var(--border); }
+  rect.stage-deep { fill: var(--recovery); }
+  rect.stage-light { fill: color-mix(in srgb, var(--recovery) 55%, var(--surface-2)); }
+  rect.stage-rem { fill: var(--training); }
+  rect.stage-awake { fill: var(--border); }
 </style>
 """
 
-HTML_TEMPLATE = '<meta charset="UTF-8"><title>Training Dashboard</title>' + CSS + """<div class="dashboard">
-  <header class="topbar">
-    <div class="topbar-title">
-      <h1>Training Dashboard</h1>
-      <p class="subtitle" id="week-note"></p>
-    </div>
-    <div class="topbar-meta">Last updated<br><strong>{{generated}}</strong></div>
-  </header>
 
-  {{race_countdown}}
-
-  <div class="columns">
-    <section class="side side-training">
-      <h2><span class="side-dot dot-training"></span>Training</h2>
-      <div class="card-grid">
-        {{training_cards}}
-      </div>
-    </section>
-
-    <section class="side side-recovery">
-      <h2><span class="side-dot dot-recovery"></span>Recovery</h2>
-      <div class="card-grid">
-        {{recovery_cards}}
-      </div>
-    </section>
-  </div>
-
-  <div class="race-panel">
-    <h2>Race Predictor</h2>
-    <div class="race-grid">
-      <div class="race-item"><div class="race-label">5K</div><div class="race-value" id="race-5k-value">–</div></div>
-      <div class="race-item"><div class="race-label">10K</div><div class="race-value" id="race-10k-value">–</div></div>
-      <div class="race-item"><div class="race-label">Half Marathon</div><div class="race-value" id="race-half-value">–</div></div>
-      <div class="race-item"><div class="race-label">Marathon</div><div class="race-value" id="race-marathon-value">–</div></div>
-    </div>
-  </div>
-
-  {{personal_records}}
-
-  {{heatmap}}
-
-  {{fitness_facts}}
-
-  <div class="activities-panel">
-    <h2>Activities This Week</h2>
-    <div id="activities-list"></div>
-  </div>
-
-  <footer class="foot">Built from your Garmin data - say "update my dashboard" to refresh. Click any chart point to browse that week.</footer>
-</div>
-
-<script id="weeks-data" type="application/json">__WEEKS_JSON__</script>
-<script>
-(function () {
-  var WEEKS = JSON.parse(document.getElementById('weeks-data').textContent);
-  var selected = WEEKS.length - 1;
-
-  var METRICS = [
-    { slug: 'volume', field: 'volume_mi', decimals: 1, higherBetter: true },
-    { slug: 'vert', field: 'vert_ft', decimals: 0, higherBetter: true },
-    { slug: 'hr', field: 'avg_hr', decimals: 0, higherBetter: false },
-    { slug: 'vo2max', field: 'vo2max', decimals: 1, higherBetter: true },
-    { slug: 'sleep', field: 'sleep_h', decimals: 1, higherBetter: true },
-    { slug: 'hrv', field: 'hrv_ms', decimals: 0, higherBetter: true },
-    { slug: 'readiness', field: 'readiness', decimals: 0, higherBetter: true },
-    { slug: 'acwr', field: 'acwr_ratio', decimals: 2, statusField: 'acwr_status' }
-  ];
-
-  function acwrPill(status) {
-    if (!status) return { cls: '', text: '' };
-    var key = status.toUpperCase();
-    var cls = key === 'HIGH' ? 'bad' : key === 'LOW' ? 'warn' : 'good';
-    return { cls: cls, text: key.charAt(0) + key.slice(1).toLowerCase() };
-  }
-
-  function fmtNum(v, decimals) {
-    if (v === null || v === undefined) return '–';
-    return Number(v).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-  }
-
-  function fmtRace(sec) {
-    if (sec === null || sec === undefined) return '–';
-    sec = Math.round(sec);
-    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-    var mm = String(m).padStart(2, '0'), ss = String(s).padStart(2, '0');
-    return h > 0 ? (h + ':' + mm + ':' + ss) : (m + ':' + ss);
-  }
-
-  function fmtPace(secPerMi) {
-    if (secPerMi === null || secPerMi === undefined || !isFinite(secPerMi)) return '–';
-    var m = Math.floor(secPerMi / 60), s = Math.round(secPerMi % 60);
-    return m + ':' + String(s).padStart(2, '0') + '/mi';
-  }
-
-  function fmtDuration(s) {
-    if (!s) return '–';
-    var h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
-    return h > 0 ? (h + 'h ' + m + 'm') : (m + 'm');
-  }
-
-  function badgeState(cur, prev, higherBetter, isPartial) {
-    if (isPartial) return { cls: 'flat', text: 'so far' };
-    if (cur == null || prev == null || prev === 0) return { cls: '', text: '' };
-    var diff = cur - prev;
-    var pct = (diff / Math.abs(prev)) * 100;
-    if (Math.abs(pct) < 1) return { cls: 'flat', text: 'flat' };
-    var up = diff > 0;
-    var good = higherBetter ? up : !up;
-    var arrow = up ? '↑' : '↓';
-    return { cls: good ? 'good' : 'bad', text: arrow + ' ' + Math.abs(pct).toFixed(0) + '%' };
-  }
-
-  function render(i) {
-    selected = i;
-    var week = WEEKS[i];
-    var prev = i > 0 ? WEEKS[i - 1] : null;
-    var isPartial = !!week.is_current;
-
-    var pts = document.querySelectorAll('.pt.selected');
-    for (var p = 0; p < pts.length; p++) pts[p].classList.remove('selected');
-    var active = document.querySelectorAll('.pt[data-week="' + i + '"]');
-    for (var a = 0; a < active.length; a++) active[a].classList.add('selected');
-
-    METRICS.forEach(function (m) {
-      var valEl = document.getElementById(m.slug + '-value');
-      var badgeEl = document.getElementById(m.slug + '-badge');
-      if (valEl) valEl.textContent = fmtNum(week[m.field], m.decimals);
-      if (badgeEl) {
-        var state = m.statusField ? acwrPill(week[m.statusField]) : badgeState(week[m.field], prev ? prev[m.field] : null, m.higherBetter, isPartial);
-        badgeEl.className = 'delta' + (state.cls ? ' ' + state.cls : '');
-        badgeEl.textContent = state.text;
-      }
-    });
-
-    ['5k', '10k', 'half', 'marathon'].forEach(function (k) {
-      var el = document.getElementById('race-' + k + '-value');
-      if (el) el.textContent = fmtRace(week['race_' + k]);
-    });
-
-    var note = document.getElementById('week-note');
-    if (note) {
-      var partialStr = isPartial ? ' (in progress)' : '';
-      note.textContent = 'Week of ' + week.week_label + partialStr + ' – ' + week.n_activities + ' activities logged, ' + week.n_days_logged + ' days of wellness data';
-    }
-
-    var list = document.getElementById('activities-list');
-    if (list) {
-      if (!week.activities.length) {
-        list.innerHTML = '<p class="empty">No activities this week.</p>';
-      } else {
-        list.innerHTML = week.activities.map(function (act) {
-          return '<div class="activity-row">' +
-            '<div class="activity-main"><span class="activity-name">' + act.name + '</span>' +
-            '<span class="activity-type">' + act.type + '</span></div>' +
-            '<div class="activity-stats">' +
-            '<span>' + act.date + '</span>' +
-            '<span>' + (act.distance_mi != null ? act.distance_mi.toFixed(2) + ' mi' : '–') + '</span>' +
-            '<span>' + fmtDuration(act.duration_s) + '</span>' +
-            '<span>' + fmtPace(act.pace_s_per_mi) + (act.gap_s_per_mi != null && Math.abs(act.gap_s_per_mi - act.pace_s_per_mi) > 1 ? ' <span class="activity-gap">(GAP ' + fmtPace(act.gap_s_per_mi) + ')</span>' : '') + '</span>' +
-            '<span>' + (act.elevation_ft != null ? Math.round(act.elevation_ft) + ' ft' : '–') + '</span>' +
-            '<span>' + (act.avg_hr != null ? Math.round(act.avg_hr) + ' bpm' : '–') + '</span>' +
-            '</div></div>';
-        }).join('');
-      }
-    }
-  }
-
-  document.addEventListener('click', function (e) {
-    var pt = e.target.closest('.pt');
-    if (!pt) return;
-    var idx = parseInt(pt.getAttribute('data-week'), 10);
-    if (!isNaN(idx)) render(idx);
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    var pt = e.target.closest && e.target.closest('.pt');
-    if (!pt) return;
-    e.preventDefault();
-    var idx = parseInt(pt.getAttribute('data-week'), 10);
-    if (!isNaN(idx)) render(idx);
-  });
-
-  if (WEEKS.length) render(selected);
-})();
-</script>
-"""
 
 
 def main():
     data = load_data()
     weeks = bucket_weeks(data)
-    body = build_html(data, weeks)
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(body, encoding="utf-8")
-    print(f"Aggregated {len(weeks)} weeks. Dashboard written to {OUT_PATH}")
+    out_dir = OUT_PATH.parent
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    pages = {
+        "index.html": render_index(data, weeks),
+        "training.html": render_training(data, weeks),
+        "recovery.html": render_recovery(data, weeks),
+        "altitude.html": render_altitude(data),
+        "lifetime.html": render_lifetime(data),
+    }
+    for filename, html in pages.items():
+        (out_dir / filename).write_text(html, encoding="utf-8")
+
+    print(f"Aggregated {len(weeks)} weeks. Wrote {len(pages)} pages to {out_dir}")
 
 
 if __name__ == "__main__":

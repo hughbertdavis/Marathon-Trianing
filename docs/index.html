@@ -1,4 +1,4 @@
-<meta charset="UTF-8"><title>Training Dashboard</title>
+<meta charset="UTF-8"><title>Overview - Training Dashboard</title>
 <style>
   :root {
     --bg: #eef2f1;
@@ -244,16 +244,66 @@
   .heat-4 { background: var(--training); }
 
   .foot { margin-top: 32px; text-align: center; font-size: 12px; color: var(--ink-muted); }
+
+  .pagenav {
+    display: flex; gap: 4px; margin-bottom: 24px; border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .navlink {
+    padding: 8px 14px; font-size: 13px; font-weight: 600; color: var(--ink-muted);
+    text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .navlink:hover { color: var(--ink); }
+  .navlink.active { color: var(--training); border-bottom-color: var(--training); }
+
+  .menu-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px;
+    margin: 24px 0;
+  }
+  .menu-card {
+    display: block; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 18px 20px; text-decoration: none; color: var(--ink);
+    transition: border-color 0.15s ease;
+  }
+  .menu-card:hover { border-color: var(--training); }
+  .menu-title {
+    font-family: Georgia, "Iowan Old Style", "Times New Roman", serif;
+    font-size: 19px; font-weight: 600; margin-bottom: 6px;
+  }
+  .menu-desc { font-size: 13px; color: var(--ink-muted); line-height: 1.4; }
+
+  .card-grid.single-col {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;
+  }
+  .card.wide { grid-column: 1 / -1; }
+
+  .stage-legend {
+    display: flex; gap: 16px; flex-wrap: wrap; font-size: 12.5px; color: var(--ink-muted);
+    margin-bottom: 8px;
+  }
+  .stage-legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .swatch {
+    display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px;
+  }
+  .swatch.stage-deep { background: var(--recovery); }
+  .swatch.stage-light { background: color-mix(in srgb, var(--recovery) 55%, var(--surface-2)); }
+  .swatch.stage-rem { background: var(--training); }
+  .swatch.stage-awake { background: var(--border); }
+  rect.stage-deep { fill: var(--recovery); }
+  rect.stage-light { fill: color-mix(in srgb, var(--recovery) 55%, var(--surface-2)); }
+  rect.stage-rem { fill: var(--training); }
+  rect.stage-awake { fill: var(--border); }
 </style>
 <div class="dashboard">
   <header class="topbar">
     <div class="topbar-title">
       <h1>Training Dashboard</h1>
-      <p class="subtitle" id="week-note"></p>
+      <p class="subtitle">Week of Jul 6</p>
     </div>
-    <div class="topbar-meta">Last updated<br><strong>Thursday, Jul 9, 2026 - 2:59 PM</strong></div>
+    <div class="topbar-meta">Last updated<br><strong>Thursday, Jul 9, 2026 - 3:35 PM</strong></div>
   </header>
-
+  <nav class="pagenav"><a class="navlink active" href="index.html">Overview</a><a class="navlink" href="training.html">Training</a><a class="navlink" href="recovery.html">Recovery</a><a class="navlink" href="altitude.html">Altitude</a><a class="navlink" href="lifetime.html">Lifetime</a></nav>
+  
   
   <div class="race-countdown">
     <div class="countdown-main">
@@ -275,134 +325,23 @@
       </div>
     </div>
   </div>
-
-  <div class="columns">
-    <section class="side side-training">
-      <h2><span class="side-dot dot-training"></span>Training</h2>
-      <div class="card-grid">
-        
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Weekly Volume</span>
-        <span class="delta" id="volume-badge"></span>
-      </div>
-      <div class="card-value"><span id="volume-value">–</span><span class="card-unit">mi</span></div>
-      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><rect x="0.7" y="66.0" width="14.5" height="0.0" rx="2" class="bar pt" data-week="0" tabindex="0"><title>May 4: 8.1</title></rect><rect x="30.1" y="37.0" width="14.5" height="29.0" rx="2" class="bar pt" data-week="1" tabindex="0"><title>May 11: 40.2</title></rect><rect x="59.4" y="19.7" width="14.5" height="46.3" rx="2" class="bar pt" data-week="2" tabindex="0"><title>May 18: 59.2</title></rect><rect x="88.7" y="18.7" width="14.5" height="47.3" rx="2" class="bar pt" data-week="3" tabindex="0"><title>May 25: 60.4</title></rect><rect x="118.1" y="19.0" width="14.5" height="47.0" rx="2" class="bar pt" data-week="4" tabindex="0"><title>Jun 1: 60.1</title></rect><rect x="147.4" y="15.3" width="14.5" height="50.7" rx="2" class="bar pt" data-week="5" tabindex="0"><title>Jun 8: 64.1</title></rect><rect x="176.7" y="12.2" width="14.5" height="53.8" rx="2" class="bar pt" data-week="6" tabindex="0"><title>Jun 15: 67.5</title></rect><rect x="206.1" y="10.0" width="14.5" height="56.0" rx="2" class="bar pt" data-week="7" tabindex="0"><title>Jun 22: 70.0</title></rect><rect x="235.4" y="37.1" width="14.5" height="28.9" rx="2" class="bar pt" data-week="8" tabindex="0"><title>Jun 29: 40.0</title></rect><rect x="264.7" y="54.3" width="14.5" height="11.7" rx="2" class="bar bar-current pt" data-week="9" tabindex="0"><title>Jul 6: 21.0</title></rect><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
-    </div>
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Total Vert</span>
-        <span class="delta" id="vert-badge"></span>
-      </div>
-      <div class="card-value"><span id="vert-value">–</span><span class="card-unit">ft</span></div>
-      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><rect x="0.7" y="66.0" width="14.5" height="0.0" rx="2" class="bar pt" data-week="0" tabindex="0"><title>May 4: 489</title></rect><rect x="30.1" y="28.1" width="14.5" height="37.9" rx="2" class="bar pt" data-week="1" tabindex="0"><title>May 11: 6,135</title></rect><rect x="59.4" y="27.6" width="14.5" height="38.4" rx="2" class="bar pt" data-week="2" tabindex="0"><title>May 18: 6,207</title></rect><rect x="88.7" y="45.6" width="14.5" height="20.4" rx="2" class="bar pt" data-week="3" tabindex="0"><title>May 25: 3,527</title></rect><rect x="118.1" y="41.3" width="14.5" height="24.7" rx="2" class="bar pt" data-week="4" tabindex="0"><title>Jun 1: 4,167</title></rect><rect x="147.4" y="10.0" width="14.5" height="56.0" rx="2" class="bar pt" data-week="5" tabindex="0"><title>Jun 8: 8,829</title></rect><rect x="176.7" y="24.9" width="14.5" height="41.1" rx="2" class="bar pt" data-week="6" tabindex="0"><title>Jun 15: 6,608</title></rect><rect x="206.1" y="39.4" width="14.5" height="26.6" rx="2" class="bar pt" data-week="7" tabindex="0"><title>Jun 22: 4,446</title></rect><rect x="235.4" y="50.4" width="14.5" height="15.6" rx="2" class="bar pt" data-week="8" tabindex="0"><title>Jun 29: 2,812</title></rect><rect x="264.7" y="58.4" width="14.5" height="7.6" rx="2" class="bar bar-current pt" data-week="9" tabindex="0"><title>Jul 6: 1,624</title></rect><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
-    </div>
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Avg Heart Rate</span>
-        <span class="delta" id="hr-badge"></span>
-      </div>
-      <div class="card-value"><span id="hr-value">–</span><span class="card-unit">bpm</span></div>
-      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><path d="M 8.0 14.4 L 37.3 30.7 L 66.7 66.0 L 96.0 41.2 L 125.3 10.0 L 154.7 36.4 L 184.0 35.8 L 213.3 20.7 L 242.7 20.0 L 272.0 26.5 L 272.0 66 L 8.0 66 Z" class="spark-area" /><path d="M 8.0 14.4 L 37.3 30.7 L 66.7 66.0 L 96.0 41.2 L 125.3 10.0 L 154.7 36.4 L 184.0 35.8 L 213.3 20.7 L 242.7 20.0 L 272.0 26.5" class="spark-line" /><circle cx="8.0" cy="14.4" r="2" class="dot pt" data-week="0" tabindex="0"><title>May 4: 154</title></circle><circle cx="37.3" cy="30.7" r="2" class="dot pt" data-week="1" tabindex="0"><title>May 11: 143</title></circle><circle cx="66.7" cy="66.0" r="2" class="dot pt" data-week="2" tabindex="0"><title>May 18: 118</title></circle><circle cx="96.0" cy="41.2" r="2" class="dot pt" data-week="3" tabindex="0"><title>May 25: 136</title></circle><circle cx="125.3" cy="10.0" r="2" class="dot pt" data-week="4" tabindex="0"><title>Jun 1: 158</title></circle><circle cx="154.7" cy="36.4" r="2" class="dot pt" data-week="5" tabindex="0"><title>Jun 8: 139</title></circle><circle cx="184.0" cy="35.8" r="2" class="dot pt" data-week="6" tabindex="0"><title>Jun 15: 139</title></circle><circle cx="213.3" cy="20.7" r="2" class="dot pt" data-week="7" tabindex="0"><title>Jun 22: 150</title></circle><circle cx="242.7" cy="20.0" r="2" class="dot pt" data-week="8" tabindex="0"><title>Jun 29: 151</title></circle><circle cx="272.0" cy="26.5" r="3.5" class="dot dot-current pt" data-week="9" tabindex="0"><title>Jul 6: 146</title></circle><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
-    </div>
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">VO2 Max</span>
-        <span class="delta" id="vo2max-badge"></span>
-      </div>
-      <div class="card-value"><span id="vo2max-value">–</span><span class="card-unit"></span></div>
-      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><path d="M 8.0 48.8 L 37.3 66.0 L 66.7 46.6 L 96.0 20.8 L 125.3 42.3 L 154.7 55.2 L 184.0 48.8 L 213.3 10.0 L 242.7 12.2 L 272.0 35.8 L 272.0 66 L 8.0 66 Z" class="spark-area" /><path d="M 8.0 48.8 L 37.3 66.0 L 66.7 46.6 L 96.0 20.8 L 125.3 42.3 L 154.7 55.2 L 184.0 48.8 L 213.3 10.0 L 242.7 12.2 L 272.0 35.8" class="spark-line" /><circle cx="8.0" cy="48.8" r="2" class="dot pt" data-week="0" tabindex="0"><title>May 4: 62.5</title></circle><circle cx="37.3" cy="66.0" r="2" class="dot pt" data-week="1" tabindex="0"><title>May 11: 61.2</title></circle><circle cx="66.7" cy="46.6" r="2" class="dot pt" data-week="2" tabindex="0"><title>May 18: 62.7</title></circle><circle cx="96.0" cy="20.8" r="2" class="dot pt" data-week="3" tabindex="0"><title>May 25: 64.7</title></circle><circle cx="125.3" cy="42.3" r="2" class="dot pt" data-week="4" tabindex="0"><title>Jun 1: 63.0</title></circle><circle cx="154.7" cy="55.2" r="2" class="dot pt" data-week="5" tabindex="0"><title>Jun 8: 62.0</title></circle><circle cx="184.0" cy="48.8" r="2" class="dot pt" data-week="6" tabindex="0"><title>Jun 15: 62.5</title></circle><circle cx="213.3" cy="10.0" r="2" class="dot pt" data-week="7" tabindex="0"><title>Jun 22: 65.5</title></circle><circle cx="242.7" cy="12.2" r="2" class="dot pt" data-week="8" tabindex="0"><title>Jun 29: 65.3</title></circle><circle cx="272.0" cy="35.8" r="3.5" class="dot dot-current pt" data-week="9" tabindex="0"><title>Jul 6: 63.5</title></circle><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
-    </div>
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Training Load (ACWR)</span>
-        <span class="delta" id="acwr-badge"></span>
-      </div>
-      <div class="card-value"><span id="acwr-value">–</span><span class="card-unit"></span></div>
-      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><path d="M 8.0 47.1 L 37.3 23.0 L 66.7 10.0 L 96.0 19.7 L 125.3 16.5 L 154.7 40.0 L 184.0 34.3 L 213.3 34.3 L 242.7 51.4 L 272.0 66.0 L 272.0 66 L 8.0 66 Z" class="spark-area" /><path d="M 8.0 47.1 L 37.3 23.0 L 66.7 10.0 L 96.0 19.7 L 125.3 16.5 L 154.7 40.0 L 184.0 34.3 L 213.3 34.3 L 242.7 51.4 L 272.0 66.0" class="spark-line" /><circle cx="8.0" cy="47.1" r="2" class="dot pt" data-week="0" tabindex="0"><title>May 4: 0.73</title></circle><circle cx="37.3" cy="23.0" r="2" class="dot pt" data-week="1" tabindex="0"><title>May 11: 1.16</title></circle><circle cx="66.7" cy="10.0" r="2" class="dot pt" data-week="2" tabindex="0"><title>May 18: 1.39</title></circle><circle cx="96.0" cy="19.7" r="2" class="dot pt" data-week="3" tabindex="0"><title>May 25: 1.21</title></circle><circle cx="125.3" cy="16.5" r="2" class="dot pt" data-week="4" tabindex="0"><title>Jun 1: 1.27</title></circle><circle cx="154.7" cy="40.0" r="2" class="dot pt" data-week="5" tabindex="0"><title>Jun 8: 0.86</title></circle><circle cx="184.0" cy="34.3" r="2" class="dot pt" data-week="6" tabindex="0"><title>Jun 15: 0.96</title></circle><circle cx="213.3" cy="34.3" r="2" class="dot pt" data-week="7" tabindex="0"><title>Jun 22: 0.96</title></circle><circle cx="242.7" cy="51.4" r="2" class="dot pt" data-week="8" tabindex="0"><title>Jun 29: 0.66</title></circle><circle cx="272.0" cy="66.0" r="3.5" class="dot dot-current pt" data-week="9" tabindex="0"><title>Jul 6: 0.40</title></circle><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
-    </div>
-      </div>
-    </section>
-
-    <section class="side side-recovery">
-      <h2><span class="side-dot dot-recovery"></span>Recovery</h2>
-      <div class="card-grid">
-        
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Sleep</span>
-        <span class="delta" id="sleep-badge"></span>
-      </div>
-      <div class="card-value"><span id="sleep-value">–</span><span class="card-unit">h</span></div>
-      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><path d="M 8.0 10.5 L 37.3 22.9 L 66.7 10.0 L 96.0 66.0 L 125.3 44.6 L 154.7 49.3 L 184.0 14.4 L 213.3 15.9 L 242.7 39.9 L 272.0 28.6 L 272.0 66 L 8.0 66 Z" class="spark-area" /><path d="M 8.0 10.5 L 37.3 22.9 L 66.7 10.0 L 96.0 66.0 L 125.3 44.6 L 154.7 49.3 L 184.0 14.4 L 213.3 15.9 L 242.7 39.9 L 272.0 28.6" class="spark-line" /><circle cx="8.0" cy="10.5" r="2" class="dot pt" data-week="0" tabindex="0"><title>May 4: 6.8</title></circle><circle cx="37.3" cy="22.9" r="2" class="dot pt" data-week="1" tabindex="0"><title>May 11: 6.6</title></circle><circle cx="66.7" cy="10.0" r="2" class="dot pt" data-week="2" tabindex="0"><title>May 18: 6.9</title></circle><circle cx="96.0" cy="66.0" r="2" class="dot pt" data-week="3" tabindex="0"><title>May 25: 5.7</title></circle><circle cx="125.3" cy="44.6" r="2" class="dot pt" data-week="4" tabindex="0"><title>Jun 1: 6.1</title></circle><circle cx="154.7" cy="49.3" r="2" class="dot pt" data-week="5" tabindex="0"><title>Jun 8: 6.0</title></circle><circle cx="184.0" cy="14.4" r="2" class="dot pt" data-week="6" tabindex="0"><title>Jun 15: 6.8</title></circle><circle cx="213.3" cy="15.9" r="2" class="dot pt" data-week="7" tabindex="0"><title>Jun 22: 6.7</title></circle><circle cx="242.7" cy="39.9" r="2" class="dot pt" data-week="8" tabindex="0"><title>Jun 29: 6.2</title></circle><circle cx="272.0" cy="28.6" r="3.5" class="dot dot-current pt" data-week="9" tabindex="0"><title>Jul 6: 6.5</title></circle><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
-    </div>
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">HRV</span>
-        <span class="delta" id="hrv-badge"></span>
-      </div>
-      <div class="card-value"><span id="hrv-value">–</span><span class="card-unit">ms</span></div>
-      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><path d="M 8.0 10.0 L 37.3 31.1 L 66.7 46.5 L 96.0 30.4 L 125.3 38.5 L 154.7 25.5 L 184.0 66.0 L 213.3 41.7 L 242.7 13.6 L 272.0 32.6 L 272.0 66 L 8.0 66 Z" class="spark-area" /><path d="M 8.0 10.0 L 37.3 31.1 L 66.7 46.5 L 96.0 30.4 L 125.3 38.5 L 154.7 25.5 L 184.0 66.0 L 213.3 41.7 L 242.7 13.6 L 272.0 32.6" class="spark-line" /><circle cx="8.0" cy="10.0" r="2" class="dot pt" data-week="0" tabindex="0"><title>May 4: 93</title></circle><circle cx="37.3" cy="31.1" r="2" class="dot pt" data-week="1" tabindex="0"><title>May 11: 77</title></circle><circle cx="66.7" cy="46.5" r="2" class="dot pt" data-week="2" tabindex="0"><title>May 18: 65</title></circle><circle cx="96.0" cy="30.4" r="2" class="dot pt" data-week="3" tabindex="0"><title>May 25: 78</title></circle><circle cx="125.3" cy="38.5" r="2" class="dot pt" data-week="4" tabindex="0"><title>Jun 1: 71</title></circle><circle cx="154.7" cy="25.5" r="2" class="dot pt" data-week="5" tabindex="0"><title>Jun 8: 81</title></circle><circle cx="184.0" cy="66.0" r="2" class="dot pt" data-week="6" tabindex="0"><title>Jun 15: 50</title></circle><circle cx="213.3" cy="41.7" r="2" class="dot pt" data-week="7" tabindex="0"><title>Jun 22: 69</title></circle><circle cx="242.7" cy="13.6" r="2" class="dot pt" data-week="8" tabindex="0"><title>Jun 29: 91</title></circle><circle cx="272.0" cy="32.6" r="3.5" class="dot dot-current pt" data-week="9" tabindex="0"><title>Jul 6: 76</title></circle><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
-    </div>
-    <div class="card">
-      <div class="card-head">
-        <span class="card-title">Training Readiness</span>
-        <span class="delta" id="readiness-badge"></span>
-      </div>
-      <div class="card-value"><span id="readiness-value">–</span><span class="card-unit"></span></div>
-      <svg viewBox="0 0 280 84" class="spark" role="img"><line x1="8" y1="66" x2="272" y2="66" class="spark-grid" /><path d="M 8.0 14.4 L 37.3 31.2 L 66.7 49.9 L 96.0 62.4 L 125.3 66.0 L 154.7 50.7 L 184.0 57.1 L 213.3 63.5 L 242.7 29.7 L 272.0 10.0 L 272.0 66 L 8.0 66 Z" class="spark-area" /><path d="M 8.0 14.4 L 37.3 31.2 L 66.7 49.9 L 96.0 62.4 L 125.3 66.0 L 154.7 50.7 L 184.0 57.1 L 213.3 63.5 L 242.7 29.7 L 272.0 10.0" class="spark-line" /><circle cx="8.0" cy="14.4" r="2" class="dot pt" data-week="0" tabindex="0"><title>May 4: 51</title></circle><circle cx="37.3" cy="31.2" r="2" class="dot pt" data-week="1" tabindex="0"><title>May 11: 36</title></circle><circle cx="66.7" cy="49.9" r="2" class="dot pt" data-week="2" tabindex="0"><title>May 18: 19</title></circle><circle cx="96.0" cy="62.4" r="2" class="dot pt" data-week="3" tabindex="0"><title>May 25: 8</title></circle><circle cx="125.3" cy="66.0" r="2" class="dot pt" data-week="4" tabindex="0"><title>Jun 1: 4</title></circle><circle cx="154.7" cy="50.7" r="2" class="dot pt" data-week="5" tabindex="0"><title>Jun 8: 18</title></circle><circle cx="184.0" cy="57.1" r="2" class="dot pt" data-week="6" tabindex="0"><title>Jun 15: 12</title></circle><circle cx="213.3" cy="63.5" r="2" class="dot pt" data-week="7" tabindex="0"><title>Jun 22: 7</title></circle><circle cx="242.7" cy="29.7" r="2" class="dot pt" data-week="8" tabindex="0"><title>Jun 29: 37</title></circle><circle cx="272.0" cy="10.0" r="3.5" class="dot dot-current pt" data-week="9" tabindex="0"><title>Jul 6: 55</title></circle><text x="8.0" y="80" class="spark-tick" text-anchor="start">May 4</text><text x="272.0" y="80" class="spark-tick" text-anchor="end">Jul 6</text></svg>
-    </div>
-      </div>
-    </section>
-  </div>
-
-  <div class="race-panel">
-    <h2>Race Predictor</h2>
-    <div class="race-grid">
-      <div class="race-item"><div class="race-label">5K</div><div class="race-value" id="race-5k-value">–</div></div>
-      <div class="race-item"><div class="race-label">10K</div><div class="race-value" id="race-10k-value">–</div></div>
-      <div class="race-item"><div class="race-label">Half Marathon</div><div class="race-value" id="race-half-value">–</div></div>
-      <div class="race-item"><div class="race-label">Marathon</div><div class="race-value" id="race-marathon-value">–</div></div>
-    </div>
-  </div>
-
-  
-  <div class="pr-panel">
-    <h2>Personal Records</h2>
-    <div class="pr-grid">
-      <div class="pr-item">
-        <div class="pr-label">5K</div>
-        <div class="pr-value">25:22</div>
-        <div class="pr-date">2026-06-26</div>
-      </div>
-      <div class="pr-item">
-        <div class="pr-label">10K</div>
-        <div class="pr-value">32:59</div>
-        <div class="pr-date">2026-06-24</div>
-      </div>
-      <div class="pr-item">
-        <div class="pr-label">Half Marathon</div>
-        <div class="pr-value">1:40:04</div>
-        <div class="pr-date">2026-06-07</div>
-      </div>
-      <div class="pr-item">
-        <div class="pr-label">Longest Run</div>
-        <div class="pr-value">15.0 mi</div>
-        <div class="pr-date">2026-06-21</div>
-      </div>
-      <div class="pr-item">
-        <div class="pr-label">Most Vert (1 activity)</div>
-        <div class="pr-value">5,128 ft</div>
-        <div class="pr-date">2026-06-14</div>
-      </div></div>
-  </div>
-
-  
-  <div class="heatmap-panel">
-    <h2>Training Block</h2>
-    <div class="heatmap-grid"><div class="heat-col"><div class="heat-cell heat-0" title="2026-05-04: 0.0 mi"></div><div class="heat-cell heat-0" title="2026-05-05: 0.0 mi"></div><div class="heat-cell heat-0" title="2026-05-06: 0.0 mi"></div><div class="heat-cell heat-0" title="2026-05-07: 0.0 mi"></div><div class="heat-cell heat-1" title="2026-05-08: 4.1 mi"></div><div class="heat-cell heat-1" title="2026-05-09: 4.0 mi"></div><div class="heat-cell heat-0" title="2026-05-10: 0.0 mi"></div></div><div class="heat-col"><div class="heat-cell heat-2" title="2026-05-11: 5.0 mi"></div><div class="heat-cell heat-2" title="2026-05-12: 5.0 mi"></div><div class="heat-cell heat-2" title="2026-05-13: 6.0 mi"></div><div class="heat-cell heat-2" title="2026-05-14: 6.0 mi"></div><div class="heat-cell heat-2" title="2026-05-15: 5.0 mi"></div><div class="heat-cell heat-2" title="2026-05-16: 8.0 mi"></div><div class="heat-cell heat-2" title="2026-05-17: 5.2 mi"></div></div><div class="heat-col"><div class="heat-cell heat-2" title="2026-05-18: 7.0 mi"></div><div class="heat-cell heat-2" title="2026-05-19: 7.0 mi"></div><div class="heat-cell heat-2" title="2026-05-20: 8.0 mi"></div><div class="heat-cell heat-2" title="2026-05-21: 6.0 mi"></div><div class="heat-cell heat-2" title="2026-05-22: 7.0 mi"></div><div class="heat-cell heat-4" title="2026-05-23: 15.7 mi"></div><div class="heat-cell heat-3" title="2026-05-24: 8.6 mi"></div></div><div class="heat-col"><div class="heat-cell heat-4" title="2026-05-25: 14.2 mi"></div><div class="heat-cell heat-2" title="2026-05-26: 8.1 mi"></div><div class="heat-cell heat-3" title="2026-05-27: 11.9 mi"></div><div class="heat-cell heat-0" title="2026-05-28: 0.0 mi"></div><div class="heat-cell heat-2" title="2026-05-29: 8.1 mi"></div><div class="heat-cell heat-2" title="2026-05-30: 6.0 mi"></div><div class="heat-cell heat-3" title="2026-05-31: 12.0 mi"></div></div><div class="heat-col"><div class="heat-cell heat-2" title="2026-06-01: 8.0 mi"></div><div class="heat-cell heat-3" title="2026-06-02: 10.0 mi"></div><div class="heat-cell heat-3" title="2026-06-03: 10.0 mi"></div><div class="heat-cell heat-3" title="2026-06-04: 10.0 mi"></div><div class="heat-cell heat-3" title="2026-06-05: 9.0 mi"></div><div class="heat-cell heat-0" title="2026-06-06: 0.0 mi"></div><div class="heat-cell heat-4" title="2026-06-07: 13.0 mi"></div></div><div class="heat-col"><div class="heat-cell heat-3" title="2026-06-08: 9.0 mi"></div><div class="heat-cell heat-0" title="2026-06-09: 0.0 mi"></div><div class="heat-cell heat-2" title="2026-06-10: 8.0 mi"></div><div class="heat-cell heat-3" title="2026-06-11: 12.0 mi"></div><div class="heat-cell heat-3" title="2026-06-12: 10.0 mi"></div><div class="heat-cell heat-4" title="2026-06-13: 14.0 mi"></div><div class="heat-cell heat-3" title="2026-06-14: 11.0 mi"></div></div><div class="heat-col"><div class="heat-cell heat-2" title="2026-06-15: 8.0 mi"></div><div class="heat-cell heat-3" title="2026-06-16: 10.0 mi"></div><div class="heat-cell heat-3" title="2026-06-17: 11.0 mi"></div><div class="heat-cell heat-3" title="2026-06-18: 11.0 mi"></div><div class="heat-cell heat-2" title="2026-06-19: 5.5 mi"></div><div class="heat-cell heat-2" title="2026-06-20: 7.0 mi"></div><div class="heat-cell heat-4" title="2026-06-21: 15.0 mi"></div></div><div class="heat-col"><div class="heat-cell heat-3" title="2026-06-22: 10.2 mi"></div><div class="heat-cell heat-3" title="2026-06-23: 11.0 mi"></div><div class="heat-cell heat-3" title="2026-06-24: 12.6 mi"></div><div class="heat-cell heat-3" title="2026-06-25: 10.0 mi"></div><div class="heat-cell heat-3" title="2026-06-26: 10.1 mi"></div><div class="heat-cell heat-0" title="2026-06-27: 0.0 mi"></div><div class="heat-cell heat-4" title="2026-06-28: 16.0 mi"></div></div><div class="heat-col"><div class="heat-cell heat-0" title="2026-06-29: 0.0 mi"></div><div class="heat-cell heat-3" title="2026-06-30: 11.0 mi"></div><div class="heat-cell heat-4" title="2026-07-01: 17.0 mi"></div><div class="heat-cell heat-3" title="2026-07-02: 12.0 mi"></div><div class="heat-cell heat-0" title="2026-07-03: 0.0 mi"></div><div class="heat-cell heat-0" title="2026-07-04: 0.0 mi"></div><div class="heat-cell heat-0" title="2026-07-05: 0.0 mi"></div></div><div class="heat-col"><div class="heat-cell heat-0" title="2026-07-06: 0.0 mi"></div><div class="heat-cell heat-2" title="2026-07-07: 8.0 mi"></div><div class="heat-cell heat-4" title="2026-07-08: 13.0 mi"></div><div class="heat-cell heat-0" title="2026-07-09: 0.0 mi"></div></div></div>
-  </div>
-
+  <div class="menu-grid">
+    <a class="menu-card" href="training.html">
+      <div class="menu-title">Training</div>
+      <div class="menu-desc">Weekly volume, vert, HR, VO2 max, ACWR, race predictor, PRs, and activities</div>
+    </a>
+    <a class="menu-card" href="recovery.html">
+      <div class="menu-title">Recovery</div>
+      <div class="menu-desc">Sleep, sleep stages, HRV, resting HR, body battery, stress, naps</div>
+    </a>
+    <a class="menu-card" href="altitude.html">
+      <div class="menu-title">Altitude</div>
+      <div class="menu-desc">Heat and altitude acclimation</div>
+    </a>
+    <a class="menu-card" href="lifetime.html">
+      <div class="menu-title">Lifetime</div>
+      <div class="menu-desc">All-time totals across your full Garmin history</div>
+    </a></div>
   
   <div class="fitness-panel">
     <h2>Fitness Facts</h2>
@@ -417,149 +356,8 @@
       </div>
       <div class="fact-item">
         <div class="fact-label">Active-Day Streak</div>
-        <div class="fact-value">2 days <span class="fact-sub">(best 17)</span></div>
+        <div class="fact-value">2 days <span class="fact-sub">(best 74)</span></div>
       </div></div>
   </div>
-
-  <div class="activities-panel">
-    <h2>Activities This Week</h2>
-    <div id="activities-list"></div>
-  </div>
-
-  <footer class="foot">Built from your Garmin data - say "update my dashboard" to refresh. Click any chart point to browse that week.</footer>
+  <footer class="foot">Built from your Garmin data - say "update my dashboard" to refresh.</footer>
 </div>
-
-<script id="weeks-data" type="application/json">[{"week_start": "2026-05-04", "week_label": "May 4", "is_current": false, "volume_mi": 8.148109013090115, "vert_ft": 488.84514435695536, "avg_hr": 154.48143772079962, "vo2max": 62.5, "sleep_h": 6.849351851851853, "hrv_ms": 93.33333333333333, "readiness": 51.0, "race_5k": 979.3333333333334, "race_10k": 2051.3333333333335, "race_half": 4404.0, "race_marathon": 8996.0, "training_status": "MAINTAINING_2", "acwr_ratio": 0.7333333333333334, "acwr_status": "LOW", "fitness_age": null, "n_activities": 2, "n_days_logged": 3, "activities": [{"name": "El Paso County Running", "type": "running", "date": "2026-05-08", "distance_mi": 4.141538512741837, "duration_s": 1992.030029296875, "elevation_ft": 236.22047244094486, "avg_hr": 154.0, "calories": 416.0, "pace_s_per_mi": 480.9879283189581, "gap_s_per_mi": 464.4318363815743}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-09", "distance_mi": 4.006570500348278, "duration_s": 1849.41796875, "elevation_ft": 252.6246719160105, "avg_hr": 155.0, "calories": 387.0, "pace_s_per_mi": 461.5962625864779, "gap_s_per_mi": 444.0954073399357}]}, {"week_start": "2026-05-11", "week_label": "May 11", "is_current": false, "volume_mi": 40.215156304564154, "vert_ft": 6135.17060367454, "avg_hr": 143.017893744621, "vo2max": 61.166666666666664, "sleep_h": 6.583333333333334, "hrv_ms": 77.14285714285714, "readiness": 35.857142857142854, "race_5k": 988.5714285714286, "race_10k": 2065.0, "race_half": 4404.0, "race_marathon": 8996.0, "training_status": "PRODUCTIVE_2", "acwr_ratio": 1.157142857142857, "acwr_status": "OPTIMAL", "fitness_age": null, "n_activities": 7, "n_days_logged": 7, "activities": [{"name": "El Paso County Running", "type": "running", "date": "2026-05-11", "distance_mi": 5.007854046916787, "duration_s": 2065.843017578125, "elevation_ft": 164.04199475065616, "avg_hr": 175.0, "calories": 485.0, "pace_s_per_mi": 412.52061226704757, "gap_s_per_mi": 404.24447866448577}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-12", "distance_mi": 5.005816082903966, "duration_s": 2141.05908203125, "elevation_ft": 387.1391076115485, "avg_hr": 165.0, "calories": 474.0, "pace_s_per_mi": 427.71429204989533, "gap_s_per_mi": 407.9934539467278}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-13", "distance_mi": 6.031333409373633, "duration_s": 2817.2509765625, "elevation_ft": 541.3385826771653, "avg_hr": 165.0, "calories": 605.0, "pace_s_per_mi": 467.1025103974608, "gap_s_per_mi": 442.29151057243513}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-14", "distance_mi": 6.009119389251148, "duration_s": 2796.865966796875, "elevation_ft": 400.26246719160105, "avg_hr": 160.0, "calories": 582.0, "pace_s_per_mi": 465.4369110721594, "gap_s_per_mi": 446.8348489916783}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-15", "distance_mi": 5.007648945878724, "duration_s": 2334.277099609375, "elevation_ft": 419.94750656167975, "avg_hr": 160.0, "calories": 488.0, "pace_s_per_mi": 466.1423204457006, "gap_s_per_mi": 442.9270700523217}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-16", "distance_mi": 8.003671158092986, "duration_s": 3630.719970703125, "elevation_ft": 616.7979002624671, "avg_hr": 170.0, "calories": 796.0, "pace_s_per_mi": 453.6318270687432, "gap_s_per_mi": 432.786561418759}, {"name": "Costilla County Hiking", "type": "hiking", "date": "2026-05-17", "distance_mi": 5.149713272146911, "duration_s": 14396.34375, "elevation_ft": 3605.643044619422, "avg_hr": 118.0, "calories": 1343.0, "pace_s_per_mi": 2795.562197193588, "gap_s_per_mi": 1944.6003924806864}]}, {"week_start": "2026-05-18", "week_label": "May 18", "is_current": false, "volume_mi": 59.22831986880213, "vert_ft": 6207.349081364829, "avg_hr": 118.21720998164, "vo2max": 62.666666666666664, "sleep_h": 6.860648148148148, "hrv_ms": 65.33333333333333, "readiness": 19.0, "race_5k": 990.2857142857143, "race_10k": 2066.714285714286, "race_half": 4408.714285714285, "race_marathon": 9014.285714285714, "training_status": "UNPRODUCTIVE_4", "acwr_ratio": 1.3857142857142857, "acwr_status": "OPTIMAL", "fitness_age": null, "n_activities": 11, "n_days_logged": 7, "activities": [{"name": "El Paso County Running", "type": "running", "date": "2026-05-18", "distance_mi": 7.007737532536549, "duration_s": 3351.281982421875, "elevation_ft": 534.776902887139, "avg_hr": 151.0, "calories": 653.0, "pace_s_per_mi": 478.22595621797376, "gap_s_per_mi": 456.4552250761872}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-19", "distance_mi": 7.0087254156429575, "duration_s": 2979.591064453125, "elevation_ft": 570.8661417322834, "avg_hr": 164.0, "calories": 664.0, "pace_s_per_mi": 425.12595197450565, "gap_s_per_mi": 404.5325214614058}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-20", "distance_mi": 8.008287751872812, "duration_s": 3595.549072265625, "elevation_ft": 521.6535433070866, "avg_hr": 152.0, "calories": 739.0, "pace_s_per_mi": 448.9785062262245, "gap_s_per_mi": 431.41474619112086}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-21", "distance_mi": 2.1042859820717323, "duration_s": 911.030029296875, "elevation_ft": 68.89763779527559, "avg_hr": 152.0, "calories": 194.0, "pace_s_per_mi": 432.9402168045328, "gap_s_per_mi": 424.2584113705149}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-21", "distance_mi": 2.054607385592748, "duration_s": 579.0460205078125, "elevation_ft": 13.123359580052492, "avg_hr": 157.0, "calories": 118.0, "pace_s_per_mi": 281.8280633897164, "gap_s_per_mi": 280.7074645650567}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-21", "distance_mi": 1.8004416888476764, "duration_s": 819.93798828125, "elevation_ft": 118.11023622047243, "avg_hr": 159.0, "calories": 181.0, "pace_s_per_mi": 455.40935502667065, "gap_s_per_mi": 437.4727795022145}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-22", "distance_mi": 7.012689691032495, "duration_s": 3120.846923828125, "elevation_ft": 341.20734908136484, "avg_hr": 150.0, "calories": 653.0, "pace_s_per_mi": 445.02852134166443, "gap_s_per_mi": 431.89468408280635}, {"name": "Larimer County Hiking", "type": "hiking", "date": "2026-05-23", "distance_mi": 5.637924739249346, "duration_s": 7520.5732421875, "elevation_ft": 1309.0551181102362, "avg_hr": 85.0, "calories": 396.0, "pace_s_per_mi": 1333.9257953962715, "gap_s_per_mi": 1164.8815323825213}, {"name": "Larimer County Running", "type": "running", "date": "2026-05-23", "distance_mi": 10.021816221197891, "duration_s": 4476.26220703125, "elevation_ft": 797.2440944881889, "avg_hr": 170.0, "calories": 1029.0, "pace_s_per_mi": 446.65179526672756, "gap_s_per_mi": 425.49641671764596}, {"name": "Larimer County Hiking", "type": "hiking", "date": "2026-05-24", "distance_mi": 5.786898482588247, "duration_s": 10741.3642578125, "elevation_ft": 944.8818897637794, "avg_hr": 87.0, "calories": 575.0, "pace_s_per_mi": 1856.1521841330662, "gap_s_per_mi": 1684.2726833215818}, {"name": "Larimer County Hiking", "type": "hiking", "date": "2026-05-24", "distance_mi": 2.7849049781696764, "duration_s": 7941.966796875, "elevation_ft": 987.5328083989501, "avg_hr": 93.0, "calories": 503.0, "pace_s_per_mi": 2851.7909440826597, "gap_s_per_mi": 2334.421824196316}]}, {"week_start": "2026-05-25", "week_label": "May 25", "is_current": false, "volume_mi": 60.386523534467884, "vert_ft": 3526.9028871391074, "avg_hr": 135.6645975357076, "vo2max": 64.66666666666667, "sleep_h": 5.652777777777778, "hrv_ms": 77.66666666666667, "readiness": 7.714285714285714, "race_5k": 989.1428571428571, "race_10k": 2070.5714285714284, "race_half": 4417.571428571428, "race_marathon": 9047.142857142857, "training_status": "PRODUCTIVE_2", "acwr_ratio": 1.2142857142857142, "acwr_status": "OPTIMAL", "fitness_age": null, "n_activities": 12, "n_days_logged": 7, "activities": [{"name": "Larimer County Hiking", "type": "hiking", "date": "2026-05-25", "distance_mi": 5.215870493078236, "duration_s": 11151.82421875, "elevation_ft": 905.511811023622, "avg_hr": 91.0, "calories": 668.0, "pace_s_per_mi": 2138.0561947519827, "gap_s_per_mi": 1928.7755653753857}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-25", "distance_mi": 9.010373194955521, "duration_s": 4132.27392578125, "elevation_ft": 695.5380577427821, "avg_hr": 151.0, "calories": 827.0, "pace_s_per_mi": 458.61296045925303, "gap_s_per_mi": 437.50523714999764}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-26", "distance_mi": 8.142224190998009, "duration_s": 4109.90478515625, "elevation_ft": 652.8871391076115, "avg_hr": 150.0, "calories": 771.0, "pace_s_per_mi": 504.7643848593772, "gap_s_per_mi": 480.6749524757228}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-27", "distance_mi": 7.574949914569228, "duration_s": 3656.408935546875, "elevation_ft": 606.9553805774278, "avg_hr": 154.0, "calories": 746.0, "pace_s_per_mi": 482.69744048265534, "gap_s_per_mi": 459.6771937152805}, {"name": "El Paso County Running", "type": "running", "date": "2026-05-27", "distance_mi": 4.322220694522892, "duration_s": 1804.5009765625, "elevation_ft": 209.97375328083987, "avg_hr": 164.0, "calories": 406.0, "pace_s_per_mi": 417.49394676888187, "gap_s_per_mi": 405.19130969489623}, {"name": "Glen Carbon Running", "type": "running", "date": "2026-05-29", "distance_mi": 5.0420294624898405, "duration_s": 2089.7548828125, "elevation_ft": 88.58267716535433, "avg_hr": 157.0, "calories": 457.0, "pace_s_per_mi": 414.4670114205448, "gap_s_per_mi": 409.96537292495526}, {"name": "Charleston Running", "type": "running", "date": "2026-05-29", "distance_mi": 1.0021722924497884, "duration_s": 429.89300537109375, "elevation_ft": 26.246719160104984, "avg_hr": 160.0, "calories": 99.0, "pace_s_per_mi": 428.96117624668074, "gap_s_per_mi": 422.05274594419893}, {"name": "Charleston Running", "type": "running", "date": "2026-05-29", "distance_mi": 1.0136055375571507, "duration_s": 420.0270080566406, "elevation_ft": 26.246719160104984, "avg_hr": 152.0, "calories": 93.0, "pace_s_per_mi": 414.38902264576274, "gap_s_per_mi": 407.78935669760875}, {"name": "Charleston Running", "type": "running", "date": "2026-05-29", "distance_mi": 1.0344339120571022, "duration_s": 280.9100036621094, "elevation_ft": 13.123359580052492, "avg_hr": 177.0, "calories": 74.0, "pace_s_per_mi": 271.5591594473971, "gap_s_per_mi": 269.4228863039112}, {"name": "Glen Carbon Running", "type": "running", "date": "2026-05-30", "distance_mi": 6.010846364263949, "duration_s": 2767.64990234375, "elevation_ft": 91.86351706036744, "avg_hr": 142.0, "calories": 555.0, "pace_s_per_mi": 460.4426289778676, "gap_s_per_mi": 456.0861627197323}, {"name": "Glen Carbon Running", "type": "running", "date": "2026-05-31", "distance_mi": 11.009293373184974, "duration_s": 4092.455078125, "elevation_ft": 209.97375328083987, "avg_hr": 174.0, "calories": 1039.0, "pace_s_per_mi": 371.7273161321032, "gap_s_per_mi": 367.3484288057583}, {"name": "Glen Carbon Running", "type": "running", "date": "2026-05-31", "distance_mi": 1.0085041043411942, "duration_s": 433.8949890136719, "elevation_ft": null, "avg_hr": 158.0, "calories": 99.0, "pace_s_per_mi": 430.2362153470005, "gap_s_per_mi": 430.2362153470005}]}, {"week_start": "2026-06-01", "week_label": "Jun 1", "is_current": false, "volume_mi": 60.08742641247817, "vert_ft": 4166.666666666666, "avg_hr": 157.53670806749506, "vo2max": 63.0, "sleep_h": 6.114285714285714, "hrv_ms": 71.42857142857143, "readiness": 4.428571428571429, "race_5k": 986.8571428571429, "race_10k": 2068.4285714285716, "race_half": 4424.571428571428, "race_marathon": 9077.714285714286, "training_status": "MAINTAINING_6", "acwr_ratio": 1.2714285714285716, "acwr_status": "OPTIMAL", "fitness_age": null, "n_activities": 11, "n_days_logged": 7, "activities": [{"name": "El Paso County Running", "type": "running", "date": "2026-06-01", "distance_mi": 8.037342923187957, "duration_s": 3580.387939453125, "elevation_ft": 561.0236220472441, "avg_hr": 166.0, "calories": 838.0, "pace_s_per_mi": 445.4691026214157, "gap_s_per_mi": 426.8473211104763}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-02", "distance_mi": 10.014334887771042, "duration_s": 4589.826171875, "elevation_ft": 948.1627296587926, "avg_hr": 156.0, "calories": 968.0, "pace_s_per_mi": 458.32561256562775, "gap_s_per_mi": 432.71929942095534}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-03", "distance_mi": 2.099047865397718, "duration_s": 938.0900268554688, "elevation_ft": 118.11023622047243, "avg_hr": 146.0, "calories": 191.0, "pace_s_per_mi": 446.91216542492884, "gap_s_per_mi": 431.7291988694921}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-03", "distance_mi": 3.7252632007008755, "duration_s": 1197.052978515625, "elevation_ft": 141.0761154855643, "avg_hr": 165.0, "calories": 268.0, "pace_s_per_mi": 321.33379952600666, "gap_s_per_mi": 313.90406179878687}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-03", "distance_mi": 0.4420186022078328, "duration_s": 200.51699829101562, "elevation_ft": null, "avg_hr": 144.0, "calories": 41.0, "pace_s_per_mi": 453.6392751107215, "gap_s_per_mi": 453.6392751107215}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-03", "distance_mi": 1.0284501044418175, "duration_s": 287.8349914550781, "elevation_ft": 68.89763779527559, "avg_hr": 147.0, "calories": 56.0, "pace_s_per_mi": 279.87258712108166, "gap_s_per_mi": 268.6252936776989}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-03", "distance_mi": 0.42948555587954235, "duration_s": 202.8249969482422, "elevation_ft": 32.808398950131235, "avg_hr": 151.0, "calories": 43.0, "pace_s_per_mi": 472.25103189530415, "gap_s_per_mi": 450.73142516225494}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-03", "distance_mi": 2.270111233259095, "duration_s": 1022.2329711914062, "elevation_ft": 91.86351706036744, "avg_hr": 157.0, "calories": 228.0, "pace_s_per_mi": 450.30082941082713, "gap_s_per_mi": 439.1929462057382}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-04", "distance_mi": 10.014844606327173, "duration_s": 4353.94482421875, "elevation_ft": 508.5301837270341, "avg_hr": 157.0, "calories": 954.0, "pace_s_per_mi": 434.74911447632616, "gap_s_per_mi": 421.37630526425954}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-05", "distance_mi": 9.015797449923696, "duration_s": 4050.677978515625, "elevation_ft": 705.3805774278214, "avg_hr": 157.0, "calories": 875.0, "pace_s_per_mi": 449.2867104672929, "gap_s_per_mi": 428.34127962518113}, {"name": "Colorado Springs Running", "type": "running", "date": "2026-06-07", "distance_mi": 13.010729983381427, "duration_s": 6004.8359375, "elevation_ft": 990.8136482939632, "avg_hr": 156.0, "calories": 1227.0, "pace_s_per_mi": 461.5295179570986, "gap_s_per_mi": 440.5606014651977}]}, {"week_start": "2026-06-08", "week_label": "Jun 8", "is_current": false, "volume_mi": 64.08515553348134, "vert_ft": 8828.740157480315, "avg_hr": 139.0208100266964, "vo2max": 62.0, "sleep_h": 6.013333333333334, "hrv_ms": 81.4, "readiness": 18.285714285714285, "race_5k": 986.2857142857143, "race_10k": 2068.5714285714284, "race_half": 4432.285714285715, "race_marathon": 9115.857142857143, "training_status": "MAINTAINING_4", "acwr_ratio": 0.8571428571428571, "acwr_status": "OPTIMAL", "fitness_age": null, "n_activities": 6, "n_days_logged": 7, "activities": [{"name": "El Paso County Running", "type": "running", "date": "2026-06-08", "distance_mi": 9.00363156024287, "duration_s": 4037.576904296875, "elevation_ft": 846.4566929133858, "avg_hr": 155.0, "calories": 828.0, "pace_s_per_mi": 448.4387080126103, "gap_s_per_mi": 423.5516573828555}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-10", "distance_mi": 8.017782473596384, "duration_s": 3884.535888671875, "elevation_ft": 646.3254593175852, "avg_hr": 149.0, "calories": 770.0, "pace_s_per_mi": 484.4900571279109, "gap_s_per_mi": 461.2512125061607}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-11", "distance_mi": 12.00514022522531, "duration_s": 5609.453125, "elevation_ft": 1059.7112860892387, "avg_hr": 155.0, "calories": 1132.0, "pace_s_per_mi": 467.25427773124767, "gap_s_per_mi": 442.823835469013}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-12", "distance_mi": 10.006710954510035, "duration_s": 4315.48388671875, "elevation_ft": 528.2152230971128, "avg_hr": 163.0, "calories": 947.0, "pace_s_per_mi": 431.2589727370667, "gap_s_per_mi": 417.4855762024749}, {"name": "Monument Running", "type": "running", "date": "2026-06-13", "distance_mi": 14.007284373322298, "duration_s": 5727.3359375, "elevation_ft": 620.0787401574803, "avg_hr": 170.0, "calories": 1316.0, "pace_s_per_mi": 408.8826773880632, "gap_s_per_mi": 397.87441121249117}, {"name": "Clear Creek County Hiking", "type": "hiking", "date": "2026-06-14", "distance_mi": 11.044605946584447, "duration_s": 29575.67578125, "elevation_ft": 5127.952755905511, "avg_hr": 123.0, "calories": 3006.0, "pace_s_per_mi": 2677.838930993849, "gap_s_per_mi": 2075.5477153525694}]}, {"week_start": "2026-06-15", "week_label": "Jun 15", "is_current": false, "volume_mi": 67.5372135323461, "vert_ft": 6607.6115485564305, "avg_hr": 139.40003288941844, "vo2max": 62.5, "sleep_h": 6.765925925925926, "hrv_ms": 50.333333333333336, "readiness": 12.428571428571429, "race_5k": 981.0, "race_10k": 2063.0, "race_half": 4438.0, "race_marathon": 9158.714285714286, "training_status": "STRAINED_4", "acwr_ratio": 0.9571428571428572, "acwr_status": "OPTIMAL", "fitness_age": null, "n_activities": 7, "n_days_logged": 7, "activities": [{"name": "El Paso County Running", "type": "running", "date": "2026-06-15", "distance_mi": 8.004876278393557, "duration_s": 3756.193115234375, "elevation_ft": 538.0577427821522, "avg_hr": 141.0, "calories": 713.0, "pace_s_per_mi": 469.23812243956127, "gap_s_per_mi": 450.32010524218487}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-16", "distance_mi": 10.004486397097201, "duration_s": 4538.47900390625, "elevation_ft": 698.8188976377952, "avg_hr": 154.0, "calories": 942.0, "pace_s_per_mi": 453.6443775087833, "gap_s_per_mi": 434.66824209546}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-17", "distance_mi": 11.00699357160433, "duration_s": 4802.76611328125, "elevation_ft": 856.2992125984251, "avg_hr": 161.0, "calories": 1024.0, "pace_s_per_mi": 436.3376867659259, "gap_s_per_mi": 416.1056119517334}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-18", "distance_mi": 11.011523998675857, "duration_s": 5024.93310546875, "elevation_ft": 882.5459317585302, "avg_hr": 156.0, "calories": 1067.0, "pace_s_per_mi": 456.33402842994315, "gap_s_per_mi": 434.5656871818174}, {"name": "Park County Hiking", "type": "hiking", "date": "2026-06-19", "distance_mi": 5.47936950067077, "duration_s": 15402.0166015625, "elevation_ft": 2555.774278215223, "avg_hr": 108.0, "calories": 1371.0, "pace_s_per_mi": 2810.9103793195595, "gap_s_per_mi": 2176.4317743379265}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-20", "distance_mi": 7.010533702901617, "duration_s": 3278.910888671875, "elevation_ft": 547.9002624671916, "avg_hr": 156.0, "calories": 688.0, "pace_s_per_mi": 467.7120213136917, "gap_s_per_mi": 445.93004991325165}, {"name": "Colorado Springs Running", "type": "running", "date": "2026-06-21", "distance_mi": 15.019430083002764, "duration_s": 6151.06787109375, "elevation_ft": 528.2152230971128, "avg_hr": 167.0, "calories": 1400.0, "pace_s_per_mi": 409.54069742332035, "gap_s_per_mi": 400.732400717102}]}, {"week_start": "2026-06-22", "week_label": "Jun 22", "is_current": false, "volume_mi": 69.97839010559194, "vert_ft": 4445.538057742782, "avg_hr": 150.00784013538288, "vo2max": 65.5, "sleep_h": 6.732499999999999, "hrv_ms": 69.0, "readiness": 6.714285714285714, "race_5k": 978.4285714285714, "race_10k": 2060.0, "race_half": 4443.285714285715, "race_marathon": 9179.142857142857, "training_status": "MAINTAINING_4", "acwr_ratio": 0.9571428571428572, "acwr_status": "OPTIMAL", "fitness_age": null, "n_activities": 12, "n_days_logged": 7, "activities": [{"name": "El Paso County Running", "type": "running", "date": "2026-06-22", "distance_mi": 4.005483100761863, "duration_s": 1667.06298828125, "elevation_ft": 203.41207349081364, "avg_hr": 154.0, "calories": 362.0, "pace_s_per_mi": 416.19523696509077, "gap_s_per_mi": 403.3917331787232}, {"name": "Colorado Springs Running", "type": "running", "date": "2026-06-22", "distance_mi": 6.2141718826894685, "duration_s": 3482.301025390625, "elevation_ft": 206.69291338582676, "avg_hr": 134.0, "calories": 593.0, "pace_s_per_mi": 560.3805448463874, "gap_s_per_mi": 548.9683378728015}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-23", "distance_mi": 11.013780110094547, "duration_s": 5174.466796875, "elevation_ft": 951.4435695538057, "avg_hr": 152.0, "calories": 1053.0, "pace_s_per_mi": 469.81751452731515, "gap_s_per_mi": 445.75069611854013}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-24", "distance_mi": 3.0072129617525833, "duration_s": 1587.39794921875, "elevation_ft": 344.48818897637796, "avg_hr": 136.0, "calories": 280.0, "pace_s_per_mi": 527.8634966688975, "gap_s_per_mi": 492.59551378105056}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-24", "distance_mi": 2.48173166267591, "duration_s": 1011.0819702148438, "elevation_ft": 114.82939632545931, "avg_hr": 144.0, "calories": 203.0, "pace_s_per_mi": 407.4098684483284, "gap_s_per_mi": 395.9592544374677}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-24", "distance_mi": 6.004881443541592, "duration_s": 1979.384033203125, "elevation_ft": 213.25459317585302, "avg_hr": 172.0, "calories": 494.0, "pace_s_per_mi": 329.629161177196, "gap_s_per_mi": 322.47159391120675}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-24", "distance_mi": 1.0765131509911803, "duration_s": 483.61700439453125, "elevation_ft": 124.67191601049868, "avg_hr": 154.0, "calories": 109.0, "pace_s_per_mi": 449.2439353381327, "gap_s_per_mi": 418.9216378357998}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-25", "distance_mi": 10.03310041913817, "duration_s": 4887.77490234375, "elevation_ft": 636.4829396325459, "avg_hr": 137.0, "calories": 917.0, "pace_s_per_mi": 487.1649538182937, "gap_s_per_mi": 468.58601319371115}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-26", "distance_mi": 3.1225765309887135, "duration_s": 1522.8819580078125, "elevation_ft": 383.8582677165354, "avg_hr": 139.0, "calories": 286.0, "pace_s_per_mi": 487.7004431739633, "gap_s_per_mi": 452.9033208200845}, {"name": "El Paso County Running", "type": "running", "date": "2026-06-26", "distance_mi": 7.004500212897304, "duration_s": 3129.43701171875, "elevation_ft": 570.8661417322834, "avg_hr": 145.0, "calories": 613.0, "pace_s_per_mi": 446.77520402619933, "gap_s_per_mi": 425.1206449076968}, {"name": "Monument Running", "type": "running", "date": "2026-06-28", "distance_mi": 15.011272158873428, "duration_s": 5677.44287109375, "elevation_ft": 636.4829396325459, "avg_hr": 170.0, "calories": 1356.0, "pace_s_per_mi": 378.2119737092178, "gap_s_per_mi": 368.44802435983956}, {"name": "Monument Running", "type": "running", "date": "2026-06-28", "distance_mi": 1.003166471187173, "duration_s": 460.3800048828125, "elevation_ft": 59.055118110236215, "avg_hr": 159.0, "calories": 101.0, "pace_s_per_mi": 458.9268263102802, "gap_s_per_mi": 442.6407688393798}]}, {"week_start": "2026-06-29", "week_label": "Jun 29", "is_current": false, "volume_mi": 40.0454649291497, "vert_ft": 2811.679790026247, "avg_hr": 150.50284274283044, "vo2max": 65.33333333333333, "sleep_h": 6.216333333333333, "hrv_ms": 90.6, "readiness": 37.2, "race_5k": 978.1428571428571, "race_10k": 2061.1428571428573, "race_half": 4450.428571428572, "race_marathon": 9195.714285714286, "training_status": "PEAKING_1", "acwr_ratio": 0.6571428571428571, "acwr_status": "LOW", "fitness_age": null, "n_activities": 4, "n_days_logged": 7, "activities": [{"name": "El Paso County Running", "type": "running", "date": "2026-06-30", "distance_mi": 11.01955206593494, "duration_s": 5055.3701171875, "elevation_ft": 767.7165354330708, "avg_hr": 149.0, "calories": 1007.0, "pace_s_per_mi": 458.7636672469938, "gap_s_per_mi": 439.6212977569983}, {"name": "Colorado Springs Running", "type": "running", "date": "2026-07-01", "distance_mi": 8.005180895911625, "duration_s": 3769.160888671875, "elevation_ft": 314.96062992125985, "avg_hr": 152.0, "calories": 770.0, "pace_s_per_mi": 470.8401893324917, "gap_s_per_mi": 459.53993048592565}, {"name": "El Paso County Running", "type": "running", "date": "2026-07-01", "distance_mi": 9.008104947380733, "duration_s": 4191.70703125, "elevation_ft": 679.1338582677165, "avg_hr": 149.0, "calories": 820.0, "pace_s_per_mi": 465.3261763417636, "gap_s_per_mi": 444.38682897831296}, {"name": "El Paso County Running", "type": "running", "date": "2026-07-02", "distance_mi": 12.012627019922403, "duration_s": 5513.0322265625, "elevation_ft": 1049.8687664041995, "avg_hr": 152.0, "calories": 1098.0, "pace_s_per_mi": 458.93643558726853, "gap_s_per_mi": 435.16626695990357}]}, {"week_start": "2026-07-06", "week_label": "Jul 6", "is_current": true, "volume_mi": 21.031774655737056, "vert_ft": 1624.015748031496, "avg_hr": 145.93894571975392, "vo2max": 63.5, "sleep_h": 6.460277777777778, "hrv_ms": 76.0, "readiness": 55.0, "race_5k": 981.25, "race_10k": 2068.5, "race_half": 4460.0, "race_marathon": 9225.25, "training_status": "RECOVERY_1", "acwr_ratio": 0.4, "acwr_status": "LOW", "fitness_age": null, "n_activities": 4, "n_days_logged": 4, "activities": [{"name": "El Paso County Running", "type": "running", "date": "2026-07-07", "distance_mi": 8.007287732610305, "duration_s": 3710.347900390625, "elevation_ft": 469.1601049868766, "avg_hr": 156.0, "calories": 751.0, "pace_s_per_mi": 463.37137171678535, "gap_s_per_mi": 447.00225041314485}, {"name": "Steam Room", "type": "other", "date": "2026-07-07", "distance_mi": null, "duration_s": 1313.699951171875, "elevation_ft": null, "avg_hr": 102.0, "calories": 103.0, "pace_s_per_mi": null, "gap_s_per_mi": null}, {"name": "El Paso County Running", "type": "running", "date": "2026-07-08", "distance_mi": 4.015741793511828, "duration_s": 1963.4730224609375, "elevation_ft": 393.70078740157476, "avg_hr": 152.0, "calories": 378.0, "pace_s_per_mi": 488.9440415798871, "gap_s_per_mi": 460.71397476435294}, {"name": "El Paso County Running", "type": "running", "date": "2026-07-08", "distance_mi": 9.008745129614924, "duration_s": 4120.15478515625, "elevation_ft": 761.1548556430446, "avg_hr": 148.0, "calories": 790.0, "pace_s_per_mi": 457.3505772309894, "gap_s_per_mi": 434.41079212415036}]}]</script>
-<script>
-(function () {
-  var WEEKS = JSON.parse(document.getElementById('weeks-data').textContent);
-  var selected = WEEKS.length - 1;
-
-  var METRICS = [
-    { slug: 'volume', field: 'volume_mi', decimals: 1, higherBetter: true },
-    { slug: 'vert', field: 'vert_ft', decimals: 0, higherBetter: true },
-    { slug: 'hr', field: 'avg_hr', decimals: 0, higherBetter: false },
-    { slug: 'vo2max', field: 'vo2max', decimals: 1, higherBetter: true },
-    { slug: 'sleep', field: 'sleep_h', decimals: 1, higherBetter: true },
-    { slug: 'hrv', field: 'hrv_ms', decimals: 0, higherBetter: true },
-    { slug: 'readiness', field: 'readiness', decimals: 0, higherBetter: true },
-    { slug: 'acwr', field: 'acwr_ratio', decimals: 2, statusField: 'acwr_status' }
-  ];
-
-  function acwrPill(status) {
-    if (!status) return { cls: '', text: '' };
-    var key = status.toUpperCase();
-    var cls = key === 'HIGH' ? 'bad' : key === 'LOW' ? 'warn' : 'good';
-    return { cls: cls, text: key.charAt(0) + key.slice(1).toLowerCase() };
-  }
-
-  function fmtNum(v, decimals) {
-    if (v === null || v === undefined) return '–';
-    return Number(v).toLocaleString(undefined, { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-  }
-
-  function fmtRace(sec) {
-    if (sec === null || sec === undefined) return '–';
-    sec = Math.round(sec);
-    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
-    var mm = String(m).padStart(2, '0'), ss = String(s).padStart(2, '0');
-    return h > 0 ? (h + ':' + mm + ':' + ss) : (m + ':' + ss);
-  }
-
-  function fmtPace(secPerMi) {
-    if (secPerMi === null || secPerMi === undefined || !isFinite(secPerMi)) return '–';
-    var m = Math.floor(secPerMi / 60), s = Math.round(secPerMi % 60);
-    return m + ':' + String(s).padStart(2, '0') + '/mi';
-  }
-
-  function fmtDuration(s) {
-    if (!s) return '–';
-    var h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
-    return h > 0 ? (h + 'h ' + m + 'm') : (m + 'm');
-  }
-
-  function badgeState(cur, prev, higherBetter, isPartial) {
-    if (isPartial) return { cls: 'flat', text: 'so far' };
-    if (cur == null || prev == null || prev === 0) return { cls: '', text: '' };
-    var diff = cur - prev;
-    var pct = (diff / Math.abs(prev)) * 100;
-    if (Math.abs(pct) < 1) return { cls: 'flat', text: 'flat' };
-    var up = diff > 0;
-    var good = higherBetter ? up : !up;
-    var arrow = up ? '↑' : '↓';
-    return { cls: good ? 'good' : 'bad', text: arrow + ' ' + Math.abs(pct).toFixed(0) + '%' };
-  }
-
-  function render(i) {
-    selected = i;
-    var week = WEEKS[i];
-    var prev = i > 0 ? WEEKS[i - 1] : null;
-    var isPartial = !!week.is_current;
-
-    var pts = document.querySelectorAll('.pt.selected');
-    for (var p = 0; p < pts.length; p++) pts[p].classList.remove('selected');
-    var active = document.querySelectorAll('.pt[data-week="' + i + '"]');
-    for (var a = 0; a < active.length; a++) active[a].classList.add('selected');
-
-    METRICS.forEach(function (m) {
-      var valEl = document.getElementById(m.slug + '-value');
-      var badgeEl = document.getElementById(m.slug + '-badge');
-      if (valEl) valEl.textContent = fmtNum(week[m.field], m.decimals);
-      if (badgeEl) {
-        var state = m.statusField ? acwrPill(week[m.statusField]) : badgeState(week[m.field], prev ? prev[m.field] : null, m.higherBetter, isPartial);
-        badgeEl.className = 'delta' + (state.cls ? ' ' + state.cls : '');
-        badgeEl.textContent = state.text;
-      }
-    });
-
-    ['5k', '10k', 'half', 'marathon'].forEach(function (k) {
-      var el = document.getElementById('race-' + k + '-value');
-      if (el) el.textContent = fmtRace(week['race_' + k]);
-    });
-
-    var note = document.getElementById('week-note');
-    if (note) {
-      var partialStr = isPartial ? ' (in progress)' : '';
-      note.textContent = 'Week of ' + week.week_label + partialStr + ' – ' + week.n_activities + ' activities logged, ' + week.n_days_logged + ' days of wellness data';
-    }
-
-    var list = document.getElementById('activities-list');
-    if (list) {
-      if (!week.activities.length) {
-        list.innerHTML = '<p class="empty">No activities this week.</p>';
-      } else {
-        list.innerHTML = week.activities.map(function (act) {
-          return '<div class="activity-row">' +
-            '<div class="activity-main"><span class="activity-name">' + act.name + '</span>' +
-            '<span class="activity-type">' + act.type + '</span></div>' +
-            '<div class="activity-stats">' +
-            '<span>' + act.date + '</span>' +
-            '<span>' + (act.distance_mi != null ? act.distance_mi.toFixed(2) + ' mi' : '–') + '</span>' +
-            '<span>' + fmtDuration(act.duration_s) + '</span>' +
-            '<span>' + fmtPace(act.pace_s_per_mi) + (act.gap_s_per_mi != null && Math.abs(act.gap_s_per_mi - act.pace_s_per_mi) > 1 ? ' <span class="activity-gap">(GAP ' + fmtPace(act.gap_s_per_mi) + ')</span>' : '') + '</span>' +
-            '<span>' + (act.elevation_ft != null ? Math.round(act.elevation_ft) + ' ft' : '–') + '</span>' +
-            '<span>' + (act.avg_hr != null ? Math.round(act.avg_hr) + ' bpm' : '–') + '</span>' +
-            '</div></div>';
-        }).join('');
-      }
-    }
-  }
-
-  document.addEventListener('click', function (e) {
-    var pt = e.target.closest('.pt');
-    if (!pt) return;
-    var idx = parseInt(pt.getAttribute('data-week'), 10);
-    if (!isNaN(idx)) render(idx);
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    var pt = e.target.closest && e.target.closest('.pt');
-    if (!pt) return;
-    e.preventDefault();
-    var idx = parseInt(pt.getAttribute('data-week'), 10);
-    if (!isNaN(idx)) render(idx);
-  });
-
-  if (WEEKS.length) render(selected);
-})();
-</script>
