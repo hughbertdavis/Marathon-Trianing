@@ -11,7 +11,7 @@ import json
 import os
 import re
 import sys
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from garminconnect import Garmin
@@ -141,8 +141,22 @@ def wellness_fields(garmin: Garmin, day: date, race_by_date: dict | None = None)
 
 
 def race_predictions_by_date(garmin: Garmin, start: str, end: str) -> dict:
-    rows = safe(lambda: garmin.get_race_predictions(startdate=start, enddate=end, _type="daily")) or []
-    return {row["calendarDate"]: row for row in rows if row.get("calendarDate")}
+    """Chunks into <=365-day windows since Garmin rejects longer ranges in one call."""
+    start_d = datetime.strptime(start, "%Y-%m-%d").date()
+    end_d = datetime.strptime(end, "%Y-%m-%d").date()
+
+    result = {}
+    chunk_start = start_d
+    while chunk_start <= end_d:
+        chunk_end = min(chunk_start + timedelta(days=365), end_d)
+        rows = safe(lambda: garmin.get_race_predictions(
+            startdate=chunk_start.isoformat(), enddate=chunk_end.isoformat(), _type="daily"
+        )) or []
+        for row in rows:
+            if row.get("calendarDate"):
+                result[row["calendarDate"]] = row
+        chunk_start = chunk_end + timedelta(days=1)
+    return result
 
 
 def render_wellness_note(f: dict) -> str:
