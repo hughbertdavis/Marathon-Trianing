@@ -134,8 +134,9 @@ def activity_note(act: dict) -> tuple[str, str]:
     start_local = act.get("startTimeLocal") or ""
     type_key = ((act.get("activityType") or {}).get("typeKey")) or "activity"
     date_part = start_local.split(" ")[0] if start_local else "unknown-date"
+    time_part = start_local.split(" ")[1].replace(":", "") if " " in start_local else ""
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") or "activity"
-    filename = f"{date_part}-{slug}.md"
+    filename = f"{date_part}-{time_part}-{slug}.md" if time_part else f"{date_part}-{slug}.md"
 
     duration_s = act.get("duration")
     distance_m = act.get("distance")

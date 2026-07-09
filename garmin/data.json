@@ -1,0 +1,13 @@
+{
+  "wellness": {
+    "2026-07-09": "# Garmin wellness 2026-07-09\n\n- Resting HR: 44 bpm\n- HRV (overnight): 69 ms\n- Sleep: 6.4 h (score 60)\n- Body battery: 31 -> 79\n- Stress (avg): 24\n- Steps: 5522\n- Training readiness: 54\n",
+    "2026-07-08": "# Garmin wellness 2026-07-08\n\n- Resting HR: 44 bpm\n- HRV (overnight): 83 ms\n- Sleep: 6.5 h (score 67)\n- Body battery: 14 -> 82\n- Stress (avg): 23\n- Steps: 29822\n- Training readiness: 50\n",
+    "2026-07-07": "# Garmin wellness 2026-07-07\n\n- Resting HR: 49 bpm\n- Body battery: 10 -> 59\n- Stress (avg): 40\n- Steps: 21345\n- Training readiness: 61\n"
+  },
+  "activities": {
+    "2026-07-08-171311-el-paso-county-running.md": "# El Paso County Running\n\n- Date: 2026-07-08 17:13:11\n- Type: running\n- Distance: 14.50 km\n- Duration: 1h 8m\n- Avg HR: 148 bpm\n- Calories: 790\n",
+    "2026-07-08-102502-el-paso-county-running.md": "# El Paso County Running\n\n- Date: 2026-07-08 10:25:02\n- Type: running\n- Distance: 6.46 km\n- Duration: 32m\n- Avg HR: 152 bpm\n- Calories: 378\n",
+    "2026-07-07-195947-steam-room.md": "# Steam Room\n\n- Date: 2026-07-07 19:59:47\n- Type: other\n- Duration: 21m\n- Avg HR: 102 bpm\n- Calories: 103\n",
+    "2026-07-07-181248-el-paso-county-running.md": "# El Paso County Running\n\n- Date: 2026-07-07 18:12:48\n- Type: running\n- Distance: 12.89 km\n- Duration: 1h 1m\n- Avg HR: 156 bpm\n- Calories: 751\n"
+  }
+}
