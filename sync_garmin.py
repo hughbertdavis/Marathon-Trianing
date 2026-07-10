@@ -249,6 +249,9 @@ def activity_fields(act: dict) -> dict:
         "duration_s": act.get("duration"),
         "distance_m": act.get("distance"),
         "elevation_gain_m": act.get("elevationGain"),
+        "min_elevation_m": act.get("minElevation"),
+        "max_elevation_m": act.get("maxElevation"),
+        "avg_elevation_m": act.get("avgElevation"),
         "avg_hr": act.get("averageHR"),
         "calories": act.get("calories"),
     }
@@ -262,6 +265,8 @@ def render_activity_note(f: dict) -> str:
         lines.append(f"- Duration: {fmt_hms(f['duration_s'])}")
     if f["elevation_gain_m"]:
         lines.append(f"- Elevation gain: {f['elevation_gain_m']:.0f} m")
+    if f.get("avg_elevation_m") is not None:
+        lines.append(f"- Avg elevation: {f['avg_elevation_m']:.0f} m")
     if f["avg_hr"]:
         lines.append(f"- Avg HR: {f['avg_hr']:.0f} bpm")
     if f["calories"]:

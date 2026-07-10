@@ -7,6 +7,7 @@ activity list, on the training page) on that page to that week.
 """
 
 import json
+import re
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -56,13 +57,17 @@ def activity_summary(a: dict) -> dict:
         if miles > 0:
             pace_s_per_mi = duration_s / miles
 
+    avg_elevation_m = a.get("avg_elevation_m")
+
     return {
         "name": a.get("name") or "Activity",
         "type": a.get("type") or "activity",
         "date": a.get("date"),
+        "start_local": a.get("start_local"),
         "distance_mi": (distance_m / METERS_PER_MILE) if distance_m else None,
         "duration_s": duration_s,
         "elevation_ft": (elevation_gain_m / METERS_PER_FOOT) if elevation_gain_m else None,
+        "avg_elevation_ft": (avg_elevation_m / METERS_PER_FOOT) if avg_elevation_m is not None else None,
         "avg_hr": a.get("avg_hr"),
         "calories": a.get("calories"),
         "pace_s_per_mi": pace_s_per_mi,
@@ -264,6 +269,39 @@ def compute_heatmap(data: dict) -> list:
     return days
 
 
+DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+
+
+def day_label(d: date) -> str:
+    return f"{DAY_NAMES[d.weekday()]}, {MONTH_ABBR[d.month - 1]} {d.day}, {d.year}"
+
+
+def compute_daily_days(data: dict, days_back: int = 90) -> list:
+    wellness = data.get("wellness", {})
+    activities = list(data.get("activities", {}).values())
+    by_day_activities = defaultdict(list)
+    for a in activities:
+        if a.get("date"):
+            by_day_activities[a["date"]].append(a)
+
+    today = date.today()
+    start = today - timedelta(days=days_back - 1)
+
+    result = []
+    d = start
+    while d <= today:
+        iso = d.isoformat()
+        acts = sorted(by_day_activities.get(iso, []), key=lambda a: a.get("start_local") or "")
+        result.append({
+            "date": iso,
+            "date_label": day_label(d),
+            "wellness": wellness.get(iso) or {},
+            "activities": [activity_summary(a) for a in acts],
+        })
+        d += timedelta(days=1)
+    return result
+
+
 def weekly_stress_series(data: dict) -> list:
     profile = data.get("profile", {}) or {}
     weekly = profile.get("weekly_stress") or {}
@@ -275,6 +313,95 @@ ACTIVITY_TYPE_LABELS = {
     "running": "Running", "cycling": "Cycling", "hiking": "Hiking",
     "swimming": "Swimming", "other": "Other",
 }
+
+
+ELEVATION_BANDS = [
+    ("Low (< 6,500 ft)", 0, 1981),
+    ("Moderate (6,500-9,000 ft)", 1981, 2743),
+    ("High (9,000-11,500 ft)", 2743, 3505),
+    ("Very High (11,500+ ft)", 3505, 999999),
+]
+
+
+def compute_altitude_stats(data: dict) -> dict:
+    """Our own altitude-adaptation estimate, since Garmin's own score is unavailable
+    for this account. Uses real elevation (min/max/avg per activity, from Garmin's
+    raw activity data) plus pace/HR to approximate acclimation -- there's no ambient
+    temperature data available, so this is elevation-based only, not heat-based."""
+    activities = list(data.get("activities", {}).values())
+    today = date.today()
+    cutoff_90d = (today - timedelta(days=90)).isoformat()
+
+    with_elev = [a for a in activities if a.get("avg_elevation_m") is not None]
+    # Pace/HR efficiency is only comparable within one activity type -- mixing in
+    # hiking (much slower pace, different HR profile) would make "high altitude"
+    # look artificially different since hikes happen to occur at higher elevation.
+    running_with_elev = [a for a in with_elev if "running" in (a.get("type") or "").lower()]
+
+    bands = []
+    for label, lo, hi in ELEVATION_BANDS:
+        in_band = [
+            a for a in running_with_elev
+            if lo <= a["avg_elevation_m"] < hi and a.get("distance_m") and a.get("duration_s") and a.get("avg_hr")
+        ]
+        if not in_band:
+            bands.append({"label": label, "count": 0})
+            continue
+
+        paces = []
+        effs = []
+        hr_sum = 0.0
+        for a in in_band:
+            miles = a["distance_m"] / METERS_PER_MILE
+            pace_s = a["duration_s"] / miles if miles > 0 else None
+            mph = 3600 / pace_s if pace_s else None
+            eff = a["avg_hr"] / mph if mph else None
+            if pace_s:
+                paces.append(pace_s)
+            if eff:
+                effs.append(eff)
+            hr_sum += a["avg_hr"]
+
+        bands.append({
+            "label": label,
+            "count": len(in_band),
+            "avg_pace_s_per_mi": sum(paces) / len(paces) if paces else None,
+            "avg_hr": hr_sum / len(in_band),
+            "efficiency": sum(effs) / len(effs) if effs else None,
+        })
+
+    # Chronological efficiency trend for moderate-and-up exposures, to see whether
+    # HR cost per mph at altitude is trending down (adapting) over repeated exposure.
+    moderate_plus = sorted(
+        (a for a in running_with_elev if a["avg_elevation_m"] >= 1981 and a.get("distance_m") and a.get("duration_s") and a.get("avg_hr")),
+        key=lambda a: a.get("date") or "",
+    )
+    efficiency_series = []
+    for a in moderate_plus:
+        miles = a["distance_m"] / METERS_PER_MILE
+        if miles <= 0:
+            continue
+        pace_s = a["duration_s"] / miles
+        mph = 3600 / pace_s
+        efficiency_series.append({
+            "date": a["date"],
+            "efficiency": a["avg_hr"] / mph,
+            "elevation_ft": a["avg_elevation_m"] / METERS_PER_FOOT,
+        })
+
+    recent = [a for a in with_elev if a.get("date") and a["date"] >= cutoff_90d]
+    max_elev = max((a["max_elevation_m"] for a in with_elev if a.get("max_elevation_m") is not None), default=None)
+
+    return {
+        "bands": bands,
+        "efficiency_series": efficiency_series,
+        "max_elevation_ft": (max_elev / METERS_PER_FOOT) if max_elev else None,
+        "avg_elevation_ft_90d": (
+            sum(a["avg_elevation_m"] for a in recent) / len(recent) / METERS_PER_FOOT
+        ) if recent else None,
+        "high_alt_count_90d": sum(1 for a in recent if a["avg_elevation_m"] >= 2743),
+        "activities_with_elevation": len(with_elev),
+    }
 
 
 def compute_lifetime_stats(data: dict) -> dict:
@@ -337,7 +464,6 @@ STATUS_LABELS = {
     "PRODUCTIVE": ("Productive", "good"),
     "MAINTAINING": ("Maintaining", "good"),
     "RECOVERY": ("Recovery", "info"),
-    "RECOVERY_1": ("Recovery", "info"),
     "OVERREACHING": ("Overreaching", "warn"),
     "UNPRODUCTIVE": ("Unproductive", "warn"),
     "DETRAINING": ("Detraining", "warn"),
@@ -348,7 +474,9 @@ STATUS_LABELS = {
 def status_pill(raw_status):
     if not raw_status:
         return "–", "info"
-    key = raw_status.upper()
+    # Garmin appends a numeric device-index suffix (e.g. "PEAKING_1") to several
+    # status codes, not just RECOVERY_1 -- strip any trailing "_<digits>" before matching.
+    key = re.sub(r"_\d+$", "", raw_status.upper())
     if key in STATUS_LABELS:
         return STATUS_LABELS[key]
     label = raw_status.replace("_", " ").title()
@@ -593,6 +721,7 @@ NAV_PAGES = [
     ("index.html", "Overview"),
     ("training.html", "Training"),
     ("recovery.html", "Recovery"),
+    ("daily.html", "Daily"),
     ("altitude.html", "Altitude"),
     ("lifetime.html", "Lifetime"),
 ]
@@ -649,7 +778,8 @@ def render_index(data: dict, weeks: list) -> str:
         for href, label, desc in [
             ("training.html", "Training", "Weekly volume, vert, HR, VO2 max, ACWR, race predictor, PRs, and activities"),
             ("recovery.html", "Recovery", "Sleep, sleep stages, HRV, resting HR, body battery, stress, naps"),
-            ("altitude.html", "Altitude", "Heat and altitude acclimation"),
+            ("daily.html", "Daily", "Full detail for one day at a time -- activities, sleep, naps, VO2 max, and more"),
+            ("altitude.html", "Altitude", "Our own altitude-adaptation estimate from your elevation and pace/HR data"),
             ("lifetime.html", "Lifetime", "All-time totals across your full Garmin history"),
         ]
     )
@@ -1069,35 +1199,243 @@ def render_recovery(data: dict, weeks: list) -> str:
     return page_shell("recovery.html", "Recovery", subtitle_id, body)
 
 
-def render_altitude(data: dict) -> str:
-    wellness = data.get("wellness", {}) or {}
-    entries = sorted(
-        ((d, w.get("heat_altitude_acclimation")) for d, w in wellness.items() if w.get("heat_altitude_acclimation") is not None),
-        key=lambda kv: kv[0],
-    )
+def render_daily(data: dict) -> str:
+    days = compute_daily_days(data, days_back=90)
+    days_json = json.dumps(days).replace("</", "<\\/")
 
-    if not entries:
+    body = f'''
+  <div class="chart-nav">
+    <button id="day-prev" class="navbtn" type="button">&larr; Previous Day</button>
+    <span id="day-label" class="chart-range"></span>
+    <button id="day-next" class="navbtn" type="button">Next Day &rarr;</button>
+  </div>
+
+  <div class="pr-panel">
+    <h2>Wellness</h2>
+    <div class="pr-grid" id="daily-wellness-grid"></div>
+  </div>
+
+  <div class="race-panel">
+    <h2>Race Predictor (as of this day)</h2>
+    <div class="race-grid">
+      <div class="race-item"><div class="race-label">5K</div><div class="race-value" id="day-race-5k">–</div></div>
+      <div class="race-item"><div class="race-label">10K</div><div class="race-value" id="day-race-10k">–</div></div>
+      <div class="race-item"><div class="race-label">Half Marathon</div><div class="race-value" id="day-race-half">–</div></div>
+      <div class="race-item"><div class="race-label">Marathon</div><div class="race-value" id="day-race-marathon">–</div></div>
+    </div>
+  </div>
+
+  <div class="activities-panel">
+    <h2>Activities</h2>
+    <div id="daily-activities-list"></div>
+  </div>
+
+<script id="days-data" type="application/json">{days_json}</script>
+<script>
+(function () {{
+  var DAYS = JSON.parse(document.getElementById('days-data').textContent);
+  var idx = DAYS.length - 1;
+
+  var STATUS_LABELS = {{
+    PEAKING: ['Peaking', 'good'], PRODUCTIVE: ['Productive', 'good'], MAINTAINING: ['Maintaining', 'good'],
+    RECOVERY: ['Recovery', 'info'],
+    OVERREACHING: ['Overreaching', 'warn'], UNPRODUCTIVE: ['Unproductive', 'warn'], DETRAINING: ['Detraining', 'warn'],
+    NO_STATUS: ['No Status', 'info']
+  }};
+
+  function statusPill(raw) {{
+    if (!raw) return ['–', 'info'];
+    // Garmin appends a numeric device-index suffix (e.g. "PEAKING_1") to several
+    // status codes, not just RECOVERY_1 -- strip any trailing "_<digits>" before matching.
+    var key = raw.toUpperCase().replace(/_\\d+$/, '');
+    if (STATUS_LABELS[key]) return STATUS_LABELS[key];
+    return [raw.replace(/_/g, ' ').replace(/\\w\\S*/g, function (t) {{ return t.charAt(0).toUpperCase() + t.substr(1).toLowerCase(); }}), 'info'];
+  }}
+
+  function acwrPill(status) {{
+    if (!status) return ['–', 'info'];
+    var key = status.toUpperCase();
+    var cls = key === 'HIGH' ? 'bad' : key === 'LOW' ? 'warn' : 'good';
+    return [key.charAt(0) + key.slice(1).toLowerCase(), cls];
+  }}
+
+  function fmtRace(sec) {{
+    if (sec === null || sec === undefined) return '–';
+    sec = Math.round(sec);
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    var mm = String(m).padStart(2, '0'), ss = String(s).padStart(2, '0');
+    return h > 0 ? (h + ':' + mm + ':' + ss) : (m + ':' + ss);
+  }}
+
+  function fmtPace(secPerMi) {{
+    if (secPerMi === null || secPerMi === undefined || !isFinite(secPerMi)) return '–';
+    var m = Math.floor(secPerMi / 60), s = Math.round(secPerMi % 60);
+    return m + ':' + String(s).padStart(2, '0') + '/mi';
+  }}
+
+  function fmtDuration(s) {{
+    if (!s) return '–';
+    var h = Math.floor(s / 3600), m = Math.round((s % 3600) / 60);
+    return h > 0 ? (h + 'h ' + m + 'm') : (m + 'm');
+  }}
+
+  function item(items, label, value, sub) {{
+    if (value === null || value === undefined || value === '') return;
+    items.push('<div class="pr-item"><div class="pr-label">' + label + '</div><div class="pr-value">' + value + '</div>' +
+      (sub ? '<div class="pr-date">' + sub + '</div>' : '') + '</div>');
+  }}
+
+  function buildWellnessGrid(w) {{
+    var items = [];
+    item(items, 'Resting HR', w.resting_hr != null ? w.resting_hr + ' bpm' : null);
+    item(items, 'HRV (overnight)', w.hrv_overnight != null ? Math.round(w.hrv_overnight) + ' ms' : null);
+    item(items, 'Sleep', w.sleep_hours != null ? w.sleep_hours.toFixed(1) + ' h' : null,
+      w.sleep_score != null ? 'score ' + w.sleep_score : null);
+    if (w.deep_sleep_h != null || w.light_sleep_h != null || w.rem_sleep_h != null) {{
+      var stages = 'Deep ' + (w.deep_sleep_h || 0).toFixed(1) + 'h, Light ' + (w.light_sleep_h || 0).toFixed(1) +
+        'h, REM ' + (w.rem_sleep_h || 0).toFixed(1) + 'h, Awake ' + (w.awake_h || 0).toFixed(1) + 'h';
+      item(items, 'Sleep Stages', stages);
+    }}
+    item(items, 'Nap', w.nap_minutes ? Math.round(w.nap_minutes) + ' min' : null);
+    item(items, 'SpO2', w.avg_spo2 != null ? w.avg_spo2 + '%' : null);
+    item(items, 'Respiration', w.avg_respiration != null ? w.avg_respiration.toFixed(1) + ' brpm' : null);
+    item(items, 'Body Battery', (w.body_battery_low != null && w.body_battery_high != null) ?
+      w.body_battery_low + ' \\u2192 ' + w.body_battery_high : null);
+    item(items, 'Stress (avg)', w.avg_stress != null ? w.avg_stress : null);
+    item(items, 'Steps', w.steps != null ? w.steps.toLocaleString() : null);
+    item(items, 'Training Readiness', w.training_readiness != null ? w.training_readiness : null);
+    item(items, 'VO2 Max', w.vo2max != null ? w.vo2max : null);
+    if (w.training_status) {{
+      var sp = statusPill(w.training_status);
+      items.push('<div class="pr-item"><div class="pr-label">Training Status</div><div class="pr-value"><span class="pill pill-' +
+        sp[1] + '">' + sp[0] + '</span></div></div>');
+    }}
+    if (w.acwr_ratio != null) {{
+      var ap = acwrPill(w.acwr_status);
+      items.push('<div class="pr-item"><div class="pr-label">ACWR</div><div class="pr-value">' + w.acwr_ratio.toFixed(2) +
+        ' <span class="pill pill-' + ap[1] + '" style="font-size:12px">' + ap[0] + '</span></div></div>');
+    }}
+    item(items, 'Fitness Age', w.fitness_age != null ? w.fitness_age : null);
+    if (w.heat_altitude_acclimation != null) item(items, 'Heat/Altitude Acclimation', String(w.heat_altitude_acclimation));
+    return items.length ? items.join('') : '<p class="empty">No wellness data recorded for this day.</p>';
+  }}
+
+  function buildActivities(acts) {{
+    if (!acts.length) return '<p class="empty">No activities recorded for this day.</p>';
+    return acts.map(function (act) {{
+      var timePart = act.start_local && act.start_local.indexOf(' ') > -1 ? act.start_local.split(' ')[1] : '';
+      return '<div class="activity-row">' +
+        '<div class="activity-main"><span class="activity-name">' + act.name + '</span>' +
+        '<span class="activity-type">' + act.type + (timePart ? ' - ' + timePart : '') + '</span></div>' +
+        '<div class="activity-stats">' +
+        '<span>' + (act.distance_mi != null ? act.distance_mi.toFixed(2) + ' mi' : '–') + '</span>' +
+        '<span>' + fmtDuration(act.duration_s) + '</span>' +
+        '<span>' + fmtPace(act.pace_s_per_mi) + (act.gap_s_per_mi != null && Math.abs(act.gap_s_per_mi - act.pace_s_per_mi) > 1 ? ' <span class="activity-gap">(GAP ' + fmtPace(act.gap_s_per_mi) + ')</span>' : '') + '</span>' +
+        '<span>' + (act.elevation_ft != null ? '+' + Math.round(act.elevation_ft) + ' ft' : '–') + '</span>' +
+        '<span>' + (act.avg_elevation_ft != null ? Math.round(act.avg_elevation_ft) + ' ft alt' : '–') + '</span>' +
+        '<span>' + (act.avg_hr != null ? Math.round(act.avg_hr) + ' bpm' : '–') + '</span>' +
+        '<span>' + (act.calories != null ? Math.round(act.calories) + ' cal' : '–') + '</span>' +
+        '</div></div>';
+    }}).join('');
+  }}
+
+  function render(i) {{
+    idx = i;
+    var day = DAYS[i];
+    document.getElementById('day-label').textContent = day.date_label;
+    document.getElementById('daily-wellness-grid').innerHTML = buildWellnessGrid(day.wellness || {{}});
+    document.getElementById('daily-activities-list').innerHTML = buildActivities(day.activities || []);
+
+    var w = day.wellness || {{}};
+    document.getElementById('day-race-5k').textContent = fmtRace(w.race_5k_s);
+    document.getElementById('day-race-10k').textContent = fmtRace(w.race_10k_s);
+    document.getElementById('day-race-half').textContent = fmtRace(w.race_half_s);
+    document.getElementById('day-race-marathon').textContent = fmtRace(w.race_marathon_s);
+
+    document.getElementById('day-prev').disabled = (i === 0);
+    document.getElementById('day-next').disabled = (i === DAYS.length - 1);
+  }}
+
+  document.getElementById('day-prev').addEventListener('click', function () {{ if (idx > 0) render(idx - 1); }});
+  document.getElementById('day-next').addEventListener('click', function () {{ if (idx < DAYS.length - 1) render(idx + 1); }});
+
+  if (DAYS.length) render(idx);
+}})();
+</script>'''
+
+    return page_shell("daily.html", "Daily", "Full detail for one day at a time, back 3 months", body)
+
+
+def render_altitude(data: dict) -> str:
+    stats = compute_altitude_stats(data)
+
+    if not stats["activities_with_elevation"]:
         body = '''
   <div class="pr-panel">
-    <h2>Heat &amp; Altitude Acclimation</h2>
-    <p class="empty">
-      Garmin hasn't computed a heat/altitude acclimation score for this account yet.
-      This feature populates after the device detects training in hot conditions or
-      at elevation for several consecutive days -- worth checking back on as your
-      Colorado training block progresses.
-    </p>
+    <h2>Altitude Adaptation</h2>
+    <p class="empty">No activities with elevation data yet -- this fills in once GPS activities with altitude readings are synced.</p>
   </div>'''
-    else:
-        rows = "".join(
-            f'<div class="activity-row"><span>{d}</span><span>{v}</span></div>' for d, v in entries[-30:]
-        )
-        body = f'''
+        return page_shell("altitude.html", "Altitude", "Estimated from your elevation and pace/HR data", body)
+
+    summary_items = f'''
+      <div class="pr-item">
+        <div class="pr-label">Highest Elevation Reached</div>
+        <div class="pr-value">{fmt(stats["max_elevation_ft"], 0)} ft</div>
+      </div>
+      <div class="pr-item">
+        <div class="pr-label">Avg Training Elevation (90d)</div>
+        <div class="pr-value">{fmt(stats["avg_elevation_ft_90d"], 0)} ft</div>
+      </div>
+      <div class="pr-item">
+        <div class="pr-label">High-Altitude Runs (90d, 9,000ft+)</div>
+        <div class="pr-value">{stats["high_alt_count_90d"]}</div>
+      </div>'''
+
+    band_rows = "".join(
+        f'''
+      <div class="pr-item">
+        <div class="pr-label">{b["label"]}</div>
+        <div class="pr-value">{fmt_pace(b.get("avg_pace_s_per_mi")) if b.get("avg_pace_s_per_mi") else "–"}</div>
+        <div class="pr-date">{b["count"]} runs{f", {b['avg_hr']:.0f} bpm avg" if b.get("avg_hr") else ""}{f", {b['efficiency']:.1f} bpm/mph" if b.get("efficiency") else ""}</div>
+      </div>''' for b in stats["bands"]
+    )
+
+    eff_series = stats["efficiency_series"]
+    chart_section = ""
+    if len(eff_series) >= 2:
+        eff_values = [round(e["efficiency"], 1) for e in eff_series]
+        eff_labels = [
+            f"{MONTH_ABBR[datetime.strptime(e['date'], '%Y-%m-%d').month - 1]} {datetime.strptime(e['date'], '%Y-%m-%d').day} '{e['date'][2:4]}"
+            for e in eff_series
+        ]
+        chart_section = f'''
   <div class="pr-panel">
-    <h2>Heat &amp; Altitude Acclimation</h2>
-    <div class="activities-panel">{rows}</div>
+    <h2>Altitude Efficiency Trend</h2>
+    <p class="empty">Heart-rate cost per mph of pace, for runs at 6,500 ft or higher, in chronological order. A downward trend suggests you're adapting to elevation -- less HR needed for the same effort.</p>
+    {static_line_chart(eff_values, eff_labels, 1)}
   </div>'''
 
-    return page_shell("altitude.html", "Altitude", "Heat and altitude acclimation", body)
+    body = f'''
+  <div class="pr-panel">
+    <h2>Altitude Snapshot</h2>
+    <div class="pr-grid">{summary_items}</div>
+  </div>
+
+  <div class="pr-panel">
+    <h2>Pace &amp; Heart Rate by Elevation Band</h2>
+    <div class="pr-grid">{band_rows}</div>
+  </div>
+  {chart_section}
+  <div class="pr-panel">
+    <p class="empty">
+      This is our own estimate, computed from your activities' real elevation, pace, and heart
+      rate data -- Garmin doesn't provide a heat/altitude acclimation score for this account.
+      There's no ambient temperature data available either, so this reflects altitude exposure
+      only, not heat adaptation.
+    </p>
+  </div>'''
+
+    return page_shell("altitude.html", "Altitude", "Estimated from your elevation and pace/HR data", body)
 
 
 def render_lifetime(data: dict) -> str:
@@ -1283,6 +1621,13 @@ CSS = """
   .spark-empty { font-size: 11px; fill: var(--ink-muted); }
   .pt { cursor: pointer; }
   .pt:focus { outline: none; }
+
+  /* Default colors for standalone charts (e.g. Weekly Stress, Altitude Efficiency)
+     not scoped under .side-training/.side-recovery. */
+  .spark-line { stroke: var(--info); stroke-width: 2; fill: none; }
+  .spark-area { fill: color-mix(in srgb, var(--info) 16%, transparent); stroke: none; }
+  .dot { fill: var(--info); opacity: 0.55; }
+  .dot-current { fill: var(--info); }
 
   .side-training .spark-line { stroke: var(--training); stroke-width: 2; fill: none; }
   .side-training .spark-area { fill: var(--training-soft); stroke: none; }
@@ -1486,6 +1831,7 @@ def main():
         "index.html": render_index(data, weeks),
         "training.html": render_training(data, weeks),
         "recovery.html": render_recovery(data, weeks),
+        "daily.html": render_daily(data),
         "altitude.html": render_altitude(data),
         "lifetime.html": render_lifetime(data),
     }

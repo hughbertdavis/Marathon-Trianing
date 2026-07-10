@@ -141,6 +141,13 @@ if ("serviceWorker" in navigator) {
   .pt { cursor: pointer; }
   .pt:focus { outline: none; }
 
+  /* Default colors for standalone charts (e.g. Weekly Stress, Altitude Efficiency)
+     not scoped under .side-training/.side-recovery. */
+  .spark-line { stroke: var(--info); stroke-width: 2; fill: none; }
+  .spark-area { fill: color-mix(in srgb, var(--info) 16%, transparent); stroke: none; }
+  .dot { fill: var(--info); opacity: 0.55; }
+  .dot-current { fill: var(--info); }
+
   .side-training .spark-line { stroke: var(--training); stroke-width: 2; fill: none; }
   .side-training .spark-area { fill: var(--training-soft); stroke: none; }
   .side-training .dot { fill: var(--training); opacity: 0.55; }
@@ -334,9 +341,9 @@ if ("serviceWorker" in navigator) {
       <h1>Training Dashboard</h1>
       <p class="subtitle">Week of Jul 6 '26</p>
     </div>
-    <div class="topbar-meta">Last updated<br><strong>Friday, Jul 10, 2026 - 1:16 PM</strong></div>
+    <div class="topbar-meta">Last updated<br><strong>Friday, Jul 10, 2026 - 2:00 PM</strong></div>
   </header>
-  <nav class="pagenav"><a class="navlink active" href="index.html">Overview</a><a class="navlink" href="training.html">Training</a><a class="navlink" href="recovery.html">Recovery</a><a class="navlink" href="altitude.html">Altitude</a><a class="navlink" href="lifetime.html">Lifetime</a></nav>
+  <nav class="pagenav"><a class="navlink active" href="index.html">Overview</a><a class="navlink" href="training.html">Training</a><a class="navlink" href="recovery.html">Recovery</a><a class="navlink" href="daily.html">Daily</a><a class="navlink" href="altitude.html">Altitude</a><a class="navlink" href="lifetime.html">Lifetime</a></nav>
   
   
   <div class="race-countdown">
@@ -368,9 +375,13 @@ if ("serviceWorker" in navigator) {
       <div class="menu-title">Recovery</div>
       <div class="menu-desc">Sleep, sleep stages, HRV, resting HR, body battery, stress, naps</div>
     </a>
+    <a class="menu-card" href="daily.html">
+      <div class="menu-title">Daily</div>
+      <div class="menu-desc">Full detail for one day at a time -- activities, sleep, naps, VO2 max, and more</div>
+    </a>
     <a class="menu-card" href="altitude.html">
       <div class="menu-title">Altitude</div>
-      <div class="menu-desc">Heat and altitude acclimation</div>
+      <div class="menu-desc">Our own altitude-adaptation estimate from your elevation and pace/HR data</div>
     </a>
     <a class="menu-card" href="lifetime.html">
       <div class="menu-title">Lifetime</div>

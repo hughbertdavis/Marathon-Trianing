@@ -141,6 +141,13 @@ if ("serviceWorker" in navigator) {
   .pt { cursor: pointer; }
   .pt:focus { outline: none; }
 
+  /* Default colors for standalone charts (e.g. Weekly Stress, Altitude Efficiency)
+     not scoped under .side-training/.side-recovery. */
+  .spark-line { stroke: var(--info); stroke-width: 2; fill: none; }
+  .spark-area { fill: color-mix(in srgb, var(--info) 16%, transparent); stroke: none; }
+  .dot { fill: var(--info); opacity: 0.55; }
+  .dot-current { fill: var(--info); }
+
   .side-training .spark-line { stroke: var(--training); stroke-width: 2; fill: none; }
   .side-training .spark-area { fill: var(--training-soft); stroke: none; }
   .side-training .dot { fill: var(--training); opacity: 0.55; }
@@ -334,9 +341,9 @@ if ("serviceWorker" in navigator) {
       <h1>Training Dashboard</h1>
       <p class="subtitle">All-time totals across your Garmin history</p>
     </div>
-    <div class="topbar-meta">Last updated<br><strong>Friday, Jul 10, 2026 - 1:16 PM</strong></div>
+    <div class="topbar-meta">Last updated<br><strong>Friday, Jul 10, 2026 - 2:00 PM</strong></div>
   </header>
-  <nav class="pagenav"><a class="navlink" href="index.html">Overview</a><a class="navlink" href="training.html">Training</a><a class="navlink" href="recovery.html">Recovery</a><a class="navlink" href="altitude.html">Altitude</a><a class="navlink active" href="lifetime.html">Lifetime</a></nav>
+  <nav class="pagenav"><a class="navlink" href="index.html">Overview</a><a class="navlink" href="training.html">Training</a><a class="navlink" href="recovery.html">Recovery</a><a class="navlink" href="daily.html">Daily</a><a class="navlink" href="altitude.html">Altitude</a><a class="navlink active" href="lifetime.html">Lifetime</a></nav>
   
   <div class="pr-panel">
     <h2>All-Time Totals</h2>
