@@ -1,4 +1,19 @@
-<meta charset="UTF-8"><title>Altitude - Training Dashboard</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141a19">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+</script><title>Altitude - Training Dashboard</title>
 <style>
   :root {
     --bg: #eef2f1;
@@ -316,7 +331,7 @@
       <h1>Training Dashboard</h1>
       <p class="subtitle">Heat and altitude acclimation</p>
     </div>
-    <div class="topbar-meta">Last updated<br><strong>Friday, Jul 10, 2026 - 6:13 PM</strong></div>
+    <div class="topbar-meta">Last updated<br><strong>Friday, Jul 10, 2026 - 1:03 PM</strong></div>
   </header>
   <nav class="pagenav"><a class="navlink" href="index.html">Overview</a><a class="navlink" href="training.html">Training</a><a class="navlink" href="recovery.html">Recovery</a><a class="navlink active" href="altitude.html">Altitude</a><a class="navlink" href="lifetime.html">Lifetime</a></nav>
   
