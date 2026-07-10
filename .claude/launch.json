@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dashboard-preview",
+      "runtimeExecutable": "C:\\Users\\C29Hughbert.Davis\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "runtimeArgs": ["-m", "http.server", "8532", "--directory", "docs"],
+      "port": 8532
+    }
+  ]
+}

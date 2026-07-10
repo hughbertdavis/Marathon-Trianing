@@ -606,8 +606,26 @@ def nav_html(active_file: str) -> str:
     return f'<nav class="pagenav">{"".join(links)}</nav>'
 
 
+PWA_HEAD = '''<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#141a19">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+</script>'''
+
+
 def page_shell(active_file: str, title: str, subtitle: str, body_html: str) -> str:
-    return f'''<meta charset="UTF-8"><title>{title} - Training Dashboard</title>{CSS}<div class="dashboard">
+    return f'''{PWA_HEAD}<title>{title} - Training Dashboard</title>{CSS}<div class="dashboard">
   <header class="topbar">
     <div class="topbar-title">
       <h1>Training Dashboard</h1>
