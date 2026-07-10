@@ -34,6 +34,15 @@ def load_data() -> dict:
     return json.loads(DATA_PATH.read_text(encoding="utf-8"))
 
 
+def is_running(activity_type) -> bool:
+    return "running" in (activity_type or "").lower()
+
+
+def is_running_or_hiking(activity_type) -> bool:
+    t = (activity_type or "").lower()
+    return "running" in t or "hiking" in t
+
+
 def grade_adjusted_pace(pace_s_per_mi, distance_m, elevation_gain_m):
     """Approximate GAP: normalizes uphill effort to an equivalent flat-ground pace.
 
@@ -82,7 +91,9 @@ def activity_summary(a: dict) -> dict:
 
 def bucket_weeks(data: dict) -> list:
     wellness = data.get("wellness", {})
-    activities = list(data.get("activities", {}).values())
+    # Weekly volume/vert/HR are running-training metrics -- keep hiking (real
+    # cross-training vert) but drop cycling, swimming, flying, etc.
+    activities = [a for a in data.get("activities", {}).values() if is_running_or_hiking(a.get("type"))]
 
     all_dates = list(wellness.keys()) + [a["date"] for a in activities if a.get("date")]
     if not all_dates:
@@ -183,11 +194,18 @@ PR_BUCKETS = [
 
 
 def compute_personal_records(data: dict) -> dict:
-    activities = list(data.get("activities", {}).values())
+    all_activities = list(data.get("activities", {}).values())
+    # Race times and "longest run" only make sense compared within running --
+    # a hike or bike ride covering the same distance isn't a running PR, and a
+    # glider flight (yes, this account has one) definitely isn't a "run".
+    running = [a for a in all_activities if is_running(a.get("type"))]
+    # Vert is fair to credit for hiking too (real climbing, real training) but
+    # not flying/swimming/cycling.
+    vert_eligible = [a for a in all_activities if is_running_or_hiking(a.get("type"))]
 
     records = {}
     for label, lo, hi in PR_BUCKETS:
-        candidates = [a for a in activities if a.get("distance_m") and lo <= a["distance_m"] <= hi and a.get("duration_s")]
+        candidates = [a for a in running if a.get("distance_m") and lo <= a["distance_m"] <= hi and a.get("duration_s")]
         if candidates:
             best = min(candidates, key=lambda a: a["duration_s"])
             records[label] = {"duration_s": best["duration_s"], "date": best.get("date"), "name": best.get("name")}
@@ -195,12 +213,12 @@ def compute_personal_records(data: dict) -> dict:
             records[label] = None
 
     longest = max(
-        (a for a in activities if a.get("distance_m")),
+        (a for a in running if a.get("distance_m")),
         key=lambda a: a["distance_m"],
         default=None,
     )
     most_vert = max(
-        (a for a in activities if a.get("elevation_gain_m")),
+        (a for a in vert_eligible if a.get("elevation_gain_m")),
         key=lambda a: a["elevation_gain_m"],
         default=None,
     )
@@ -221,7 +239,7 @@ def compute_personal_records(data: dict) -> dict:
 
 
 def compute_streaks(data: dict) -> dict:
-    activities = list(data.get("activities", {}).values())
+    activities = [a for a in data.get("activities", {}).values() if is_running_or_hiking(a.get("type"))]
     active_days = sorted({a["date"] for a in activities if a.get("date")})
     if not active_days:
         return {"current": 0, "best": 0}
@@ -251,7 +269,7 @@ def compute_streaks(data: dict) -> dict:
 
 
 def compute_heatmap(data: dict) -> list:
-    activities = list(data.get("activities", {}).values())
+    activities = [a for a in data.get("activities", {}).values() if is_running_or_hiking(a.get("type"))]
     by_day = defaultdict(float)
     for a in activities:
         if a.get("date") and a.get("distance_m"):
@@ -399,9 +417,37 @@ def compute_altitude_stats(data: dict) -> dict:
     recent = [a for a in with_elev if a.get("date") and a["date"] >= cutoff_90d]
     max_elev = max((a["max_elevation_m"] for a in with_elev if a.get("max_elevation_m") is not None), default=None)
 
+    cutoff_60d = (today - timedelta(days=60)).isoformat()
+    efficiency_series_60d = [e for e in efficiency_series if e["date"] >= cutoff_60d]
+
+    # Acclimation score: compare the first half of the observed altitude-exposure
+    # history to the second half. A drop in HR-cost-per-mph over that span is our
+    # best available signal of altitude adaptation (no ambient temperature data
+    # exists, so this can't separate altitude from general fitness gains, but
+    # restricting to a single elevation-exposed cohort of runs is the closest
+    # proxy we can compute).
+    acclimation = None
+    if len(efficiency_series) >= 6:
+        mid = len(efficiency_series) // 2
+        first_half = [e["efficiency"] for e in efficiency_series[:mid]]
+        second_half = [e["efficiency"] for e in efficiency_series[mid:]]
+        first_avg = sum(first_half) / len(first_half)
+        second_avg = sum(second_half) / len(second_half)
+        if first_avg:
+            pct = ((first_avg - second_avg) / first_avg) * 100
+            acclimation = {
+                "pct": pct,
+                "first_avg": first_avg,
+                "second_avg": second_avg,
+                "first_span": f"{efficiency_series[0]['date']} to {efficiency_series[mid - 1]['date']}",
+                "second_span": f"{efficiency_series[mid]['date']} to {efficiency_series[-1]['date']}",
+            }
+
     return {
         "bands": bands,
         "efficiency_series": efficiency_series,
+        "efficiency_series_60d": efficiency_series_60d,
+        "acclimation": acclimation,
         "max_elevation_ft": (max_elev / METERS_PER_FOOT) if max_elev else None,
         "avg_elevation_ft_90d": (
             sum(a["avg_elevation_m"] for a in recent) / len(recent) / METERS_PER_FOOT
@@ -672,12 +718,16 @@ def card_skeleton(slug, title, unit_label):
 
 
 
-def static_line_chart(values, labels, decimals=0):
+def static_line_chart(values, labels, decimals=0, axis_labels=False, y_suffix=""):
     """Non-interactive trend chart for series on a different date grid than the weekly cards
     (e.g. Garmin's own weekly-stress rollup) -- must not carry 'pt'/data-week, which would
-    wrongly trigger the click-to-switch-week handler with a mismatched index."""
-    W, H = 280, 84
-    pad_l, pad_r, pad_t, pad_b = 8, 8, 10, 18
+    wrongly trigger the click-to-switch-week handler with a mismatched index.
+
+    With axis_labels=True, adds y-axis min/max value labels and several x-axis date
+    ticks instead of just the first/last."""
+    W, H = 320, 110 if axis_labels else 84
+    pad_l = 38 if axis_labels else 8
+    pad_r, pad_t, pad_b = 10, 10, 18
     plot_w = W - pad_l - pad_r
     plot_h = H - pad_t - pad_b
 
@@ -699,6 +749,8 @@ def static_line_chart(values, labels, decimals=0):
     baseline_y = pad_t + plot_h
     svg = [f'<svg viewBox="0 0 {W} {H}" class="spark" role="img">']
     svg.append(f'<line x1="{pad_l}" y1="{baseline_y}" x2="{W - pad_r}" y2="{baseline_y}" class="spark-grid" />')
+    if axis_labels:
+        svg.append(f'<line x1="{pad_l}" y1="{pad_t}" x2="{W - pad_r}" y2="{pad_t}" class="spark-grid" />')
 
     path_pts = [(x_of(i), y_of(v)) for i, v in pts]
     line_d = "M " + " L ".join(f"{x:.1f} {y:.1f}" for x, y in path_pts)
@@ -712,8 +764,17 @@ def static_line_chart(values, labels, decimals=0):
         cls = "dot-current" if last else "dot"
         svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" class="{cls}"><title>{labels[i]}: {fmt(v, decimals)}</title></circle>')
 
-    svg.append(f'<text x="{path_pts[0][0]:.1f}" y="{H - 4}" class="spark-tick" text-anchor="start">{labels[pts[0][0]]}</text>')
-    svg.append(f'<text x="{path_pts[-1][0]:.1f}" y="{H - 4}" class="spark-tick" text-anchor="end">{labels[pts[-1][0]]}</text>')
+    if axis_labels:
+        svg.append(f'<text x="{pad_l - 6}" y="{pad_t + 3}" class="spark-tick" text-anchor="end">{fmt(vmax, decimals)}{y_suffix}</text>')
+        svg.append(f'<text x="{pad_l - 6}" y="{baseline_y}" class="spark-tick" text-anchor="end">{fmt(vmin, decimals)}{y_suffix}</text>')
+        n_ticks = min(4, len(pts))
+        tick_idxs = sorted(set(pts[round(k * (len(pts) - 1) / (n_ticks - 1))][0] for k in range(n_ticks))) if n_ticks > 1 else [pts[0][0]]
+        for i in tick_idxs:
+            anchor = "start" if i == tick_idxs[0] else "end" if i == tick_idxs[-1] else "middle"
+            svg.append(f'<text x="{x_of(i):.1f}" y="{H - 4}" class="spark-tick" text-anchor="{anchor}">{labels[i]}</text>')
+    else:
+        svg.append(f'<text x="{path_pts[0][0]:.1f}" y="{H - 4}" class="spark-tick" text-anchor="start">{labels[pts[0][0]]}</text>')
+        svg.append(f'<text x="{path_pts[-1][0]:.1f}" y="{H - 4}" class="spark-tick" text-anchor="end">{labels[pts[-1][0]]}</text>')
     svg.append("</svg>")
     return "".join(svg)
 
@@ -904,7 +965,7 @@ def render_script(weeks: list, metrics: list, include_race_predictor: bool, incl
     return {{ start: start, end: end }};
   }}
 
-  function buildChart(field, decimals, kind, statusField) {{
+  function buildChart(field, decimals, kind, statusField, format) {{
     var w = windowBounds();
     var W = 280, H = 84, padL = 8, padR = 8, padT = 10, padB = 18;
     var plotW = W - padL - padR, plotH = H - padT - padB;
@@ -931,7 +992,7 @@ def render_script(weeks: list, metrics: list, include_race_predictor: bool, incl
     svg.push('<line x1="' + padL + '" y1="' + baselineY + '" x2="' + (W - padR) + '" y2="' + baselineY + '" class="spark-grid" />');
 
     function label(i) {{ return WEEKS[w.start + i].week_label; }}
-    function valText(v) {{ return fmtNum(v, decimals); }}
+    function valText(v) {{ return format === 'race' ? fmtRace(v) : fmtNum(v, decimals); }}
 
     if (kind === 'bar') {{
       var barW = plotW / n * 0.55;
@@ -1021,7 +1082,7 @@ def render_script(weeks: list, metrics: list, include_race_predictor: bool, incl
     var w = windowBounds();
     METRICS.forEach(function (m) {{
       var el = document.getElementById(m.slug + '-chart');
-      if (el) el.innerHTML = buildChart(m.field, m.decimals, m.kind, m.statusField);
+      if (el) el.innerHTML = buildChart(m.field, m.decimals, m.kind, m.statusField, m.format);
     }});
     {stage_chart_js}
 
@@ -1047,7 +1108,7 @@ def render_script(weeks: list, metrics: list, include_race_predictor: bool, incl
     METRICS.forEach(function (m) {{
       var valEl = document.getElementById(m.slug + '-value');
       var badgeEl = document.getElementById(m.slug + '-badge');
-      if (valEl) valEl.textContent = fmtNum(week[m.field], m.decimals);
+      if (valEl) valEl.textContent = m.format === 'race' ? fmtRace(week[m.field]) : fmtNum(week[m.field], m.decimals);
       if (badgeEl) {{
         var state = m.statusField ? acwrPill(week[m.statusField]) : badgeState(week[m.field], prev ? prev[m.field] : null, m.higherBetter, isPartial);
         badgeEl.className = 'delta' + (state.cls ? ' ' + state.cls : '');
@@ -1102,6 +1163,10 @@ def render_training(data: dict, weeks: list) -> str:
         card_skeleton("hr", "Avg Heart Rate", "bpm"),
         card_skeleton("vo2max", "VO2 Max", ""),
         card_skeleton("acwr", "Training Load (ACWR)", ""),
+        card_skeleton("race5k", "Predicted 5K", ""),
+        card_skeleton("race10k", "Predicted 10K", ""),
+        card_skeleton("racehalf", "Predicted Half Marathon", ""),
+        card_skeleton("racemarathon", "Predicted Marathon", ""),
     ])
 
     metrics = [
@@ -1110,6 +1175,10 @@ def render_training(data: dict, weeks: list) -> str:
         {"slug": "hr", "field": "avg_hr", "decimals": 0, "higherBetter": False, "kind": "line"},
         {"slug": "vo2max", "field": "vo2max", "decimals": 1, "higherBetter": True, "kind": "line"},
         {"slug": "acwr", "field": "acwr_ratio", "decimals": 2, "statusField": "acwr_status", "kind": "line"},
+        {"slug": "race5k", "field": "race_5k", "higherBetter": False, "kind": "line", "format": "race"},
+        {"slug": "race10k", "field": "race_10k", "higherBetter": False, "kind": "line", "format": "race"},
+        {"slug": "racehalf", "field": "race_half", "higherBetter": False, "kind": "line", "format": "race"},
+        {"slug": "racemarathon", "field": "race_marathon", "higherBetter": False, "kind": "line", "format": "race"},
     ]
 
     body = f'''
@@ -1299,9 +1368,18 @@ def render_daily(data: dict) -> str:
     item(items, 'Sleep', w.sleep_hours != null ? w.sleep_hours.toFixed(1) + ' h' : null,
       w.sleep_score != null ? 'score ' + w.sleep_score : null);
     if (w.deep_sleep_h != null || w.light_sleep_h != null || w.rem_sleep_h != null) {{
-      var stages = 'Deep ' + (w.deep_sleep_h || 0).toFixed(1) + 'h, Light ' + (w.light_sleep_h || 0).toFixed(1) +
-        'h, REM ' + (w.rem_sleep_h || 0).toFixed(1) + 'h, Awake ' + (w.awake_h || 0).toFixed(1) + 'h';
-      item(items, 'Sleep Stages', stages);
+      var segs = [['deep', 'Deep', '--stage-deep', w.deep_sleep_h], ['light', 'Light', '--stage-light', w.light_sleep_h],
+        ['rem', 'REM', '--stage-rem', w.rem_sleep_h], ['awake', 'Awake', '--stage-awake', w.awake_h]];
+      var total = segs.reduce(function (s, x) {{ return s + (x[3] || 0); }}, 0);
+      var bar = segs.map(function (s) {{
+        var pct = total > 0 ? (s[3] || 0) / total * 100 : 0;
+        return pct > 0 ? '<div style="width:' + pct.toFixed(1) + '%;background:var(' + s[2] + ')" title="' + s[1] + ' ' + (s[3] || 0).toFixed(1) + 'h"></div>' : '';
+      }}).join('');
+      var legend = segs.map(function (s) {{
+        return '<span><i class="swatch stage-' + s[0] + '"></i>' + s[1] + ' ' + (s[3] || 0).toFixed(1) + 'h</span>';
+      }}).join('');
+      items.push('<div class="pr-item stage-item"><div class="pr-label">Sleep Stages</div>' +
+        '<div class="stage-bar">' + bar + '</div><div class="stage-legend">' + legend + '</div></div>');
     }}
     item(items, 'Nap', w.nap_minutes ? Math.round(w.nap_minutes) + ' min' : null);
     item(items, 'SpO2', w.avg_spo2 != null ? w.avg_spo2 + '%' : null);
@@ -1407,7 +1485,7 @@ def render_altitude(data: dict) -> str:
       </div>''' for b in stats["bands"]
     )
 
-    eff_series = stats["efficiency_series"]
+    eff_series = stats["efficiency_series_60d"]
     chart_section = ""
     if len(eff_series) >= 2:
         eff_values = [round(e["efficiency"], 1) for e in eff_series]
@@ -1417,9 +1495,46 @@ def render_altitude(data: dict) -> str:
         ]
         chart_section = f'''
   <div class="pr-panel">
-    <h2>Altitude Efficiency Trend</h2>
+    <h2>Altitude Efficiency Trend (Last 2 Months)</h2>
     <p class="empty">Heart-rate cost per mph of pace, for runs at 6,500 ft or higher, in chronological order. A downward trend suggests you're adapting to elevation -- less HR needed for the same effort.</p>
-    {static_line_chart(eff_values, eff_labels, 1)}
+    {static_line_chart(eff_values, eff_labels, 1, axis_labels=True, y_suffix=" bpm/mph")}
+  </div>'''
+
+    acclimation = stats.get("acclimation")
+    acclimation_section = ""
+    if acclimation:
+        pct = acclimation["pct"]
+        if abs(pct) < 3:
+            cls, verdict = "flat", "Stable"
+        elif pct > 0:
+            cls, verdict = "good", "Improving"
+        else:
+            cls, verdict = "bad", "Declining"
+        acclimation_section = f'''
+  <div class="pr-panel">
+    <h2>Altitude Acclimation Score</h2>
+    <div class="pr-grid">
+      <div class="pr-item">
+        <div class="pr-label">Trend</div>
+        <div class="pr-value"><span class="pill pill-{cls}">{verdict}</span></div>
+        <div class="pr-date">{abs(pct):.0f}% {"less" if pct > 0 else "more"} HR cost per mph vs. earlier in your training block</div>
+      </div>
+      <div class="pr-item">
+        <div class="pr-label">Earlier Efficiency</div>
+        <div class="pr-value">{acclimation["first_avg"]:.1f} bpm/mph</div>
+        <div class="pr-date">{acclimation["first_span"]}</div>
+      </div>
+      <div class="pr-item">
+        <div class="pr-label">Recent Efficiency</div>
+        <div class="pr-value">{acclimation["second_avg"]:.1f} bpm/mph</div>
+        <div class="pr-date">{acclimation["second_span"]}</div>
+      </div>
+    </div>
+    <p class="empty">
+      Splits all your 6,500ft+ runs chronologically in half and compares average HR-per-mph
+      between the two halves. This can't fully separate altitude adaptation from general
+      fitness gains over the same period, but it's the closest signal available from your data.
+    </p>
   </div>'''
 
     body = f'''
@@ -1432,6 +1547,7 @@ def render_altitude(data: dict) -> str:
     <h2>Pace &amp; Heart Rate by Elevation Band</h2>
     <div class="pr-grid">{band_rows}</div>
   </div>
+  {acclimation_section}
   {chart_section}
   <div class="pr-panel">
     <p class="empty">
@@ -1518,6 +1634,7 @@ CSS = """
     --bad: #b23b2e;
     --warn: #a9720f;
     --info: #45688f;
+    --stage-deep: #1E3A6E; --stage-light: #6FA8D8; --stage-rem: #7C4FA8; --stage-awake: #D8628F;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -1527,6 +1644,7 @@ CSS = """
       --recovery: #1f9e96; --recovery-soft: rgba(31, 158, 150, 0.16);
       --good: #4fbf82; --bad: #e2685a;
       --warn: #e0a83e; --info: #7ea3d1;
+      --stage-deep: #5B85CC; --stage-light: #8FCBEF; --stage-rem: #A47FD6; --stage-awake: #E896BC;
     }
   }
   :root[data-theme="dark"] {
@@ -1536,6 +1654,7 @@ CSS = """
     --recovery: #1f9e96; --recovery-soft: rgba(31, 158, 150, 0.16);
     --good: #4fbf82; --bad: #e2685a;
     --warn: #e0a83e; --info: #7ea3d1;
+    --stage-deep: #5B85CC; --stage-light: #8FCBEF; --stage-rem: #A47FD6; --stage-awake: #E896BC;
   }
   :root[data-theme="light"] {
     --bg: #eef2f1; --surface: #ffffff; --surface-2: #f5f8f7;
@@ -1544,6 +1663,7 @@ CSS = """
     --recovery: #03948a; --recovery-soft: rgba(3, 148, 138, 0.14);
     --good: #1f7a4c; --bad: #b23b2e;
     --warn: #a9720f; --info: #45688f;
+    --stage-deep: #1E3A6E; --stage-light: #6FA8D8; --stage-rem: #7C4FA8; --stage-awake: #D8628F;
   }
 
   * { box-sizing: border-box; }
@@ -1795,17 +1915,22 @@ CSS = """
     margin-bottom: 8px;
   }
   .stage-legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .pr-item.stage-item { grid-column: 1 / -1; }
+  .stage-bar {
+    display: flex; height: 16px; border-radius: 8px; overflow: hidden; margin: 6px 0 8px;
+    background: var(--surface-2);
+  }
   .swatch {
     display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px;
   }
-  .swatch.stage-deep { background: var(--recovery); }
-  .swatch.stage-light { background: color-mix(in srgb, var(--recovery) 55%, var(--surface-2)); }
-  .swatch.stage-rem { background: var(--training); }
-  .swatch.stage-awake { background: var(--border); }
-  rect.stage-deep { fill: var(--recovery); }
-  rect.stage-light { fill: color-mix(in srgb, var(--recovery) 55%, var(--surface-2)); }
-  rect.stage-rem { fill: var(--training); }
-  rect.stage-awake { fill: var(--border); }
+  .swatch.stage-deep { background: var(--stage-deep); }
+  .swatch.stage-light { background: var(--stage-light); }
+  .swatch.stage-rem { background: var(--stage-rem); }
+  .swatch.stage-awake { background: var(--stage-awake); }
+  rect.stage-deep, .bar-stage-deep { fill: var(--stage-deep); }
+  rect.stage-light, .bar-stage-light { fill: var(--stage-light); }
+  rect.stage-rem, .bar-stage-rem { fill: var(--stage-rem); }
+  rect.stage-awake, .bar-stage-awake { fill: var(--stage-awake); }
 
   .chart-nav {
     display: flex; align-items: center; justify-content: center; gap: 16px;

@@ -30,6 +30,7 @@ if ("serviceWorker" in navigator) {
     --bad: #b23b2e;
     --warn: #a9720f;
     --info: #45688f;
+    --stage-deep: #1E3A6E; --stage-light: #6FA8D8; --stage-rem: #7C4FA8; --stage-awake: #D8628F;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -39,6 +40,7 @@ if ("serviceWorker" in navigator) {
       --recovery: #1f9e96; --recovery-soft: rgba(31, 158, 150, 0.16);
       --good: #4fbf82; --bad: #e2685a;
       --warn: #e0a83e; --info: #7ea3d1;
+      --stage-deep: #5B85CC; --stage-light: #8FCBEF; --stage-rem: #A47FD6; --stage-awake: #E896BC;
     }
   }
   :root[data-theme="dark"] {
@@ -48,6 +50,7 @@ if ("serviceWorker" in navigator) {
     --recovery: #1f9e96; --recovery-soft: rgba(31, 158, 150, 0.16);
     --good: #4fbf82; --bad: #e2685a;
     --warn: #e0a83e; --info: #7ea3d1;
+    --stage-deep: #5B85CC; --stage-light: #8FCBEF; --stage-rem: #A47FD6; --stage-awake: #E896BC;
   }
   :root[data-theme="light"] {
     --bg: #eef2f1; --surface: #ffffff; --surface-2: #f5f8f7;
@@ -56,6 +59,7 @@ if ("serviceWorker" in navigator) {
     --recovery: #03948a; --recovery-soft: rgba(3, 148, 138, 0.14);
     --good: #1f7a4c; --bad: #b23b2e;
     --warn: #a9720f; --info: #45688f;
+    --stage-deep: #1E3A6E; --stage-light: #6FA8D8; --stage-rem: #7C4FA8; --stage-awake: #D8628F;
   }
 
   * { box-sizing: border-box; }
@@ -307,17 +311,22 @@ if ("serviceWorker" in navigator) {
     margin-bottom: 8px;
   }
   .stage-legend b { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .pr-item.stage-item { grid-column: 1 / -1; }
+  .stage-bar {
+    display: flex; height: 16px; border-radius: 8px; overflow: hidden; margin: 6px 0 8px;
+    background: var(--surface-2);
+  }
   .swatch {
     display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px;
   }
-  .swatch.stage-deep { background: var(--recovery); }
-  .swatch.stage-light { background: color-mix(in srgb, var(--recovery) 55%, var(--surface-2)); }
-  .swatch.stage-rem { background: var(--training); }
-  .swatch.stage-awake { background: var(--border); }
-  rect.stage-deep { fill: var(--recovery); }
-  rect.stage-light { fill: color-mix(in srgb, var(--recovery) 55%, var(--surface-2)); }
-  rect.stage-rem { fill: var(--training); }
-  rect.stage-awake { fill: var(--border); }
+  .swatch.stage-deep { background: var(--stage-deep); }
+  .swatch.stage-light { background: var(--stage-light); }
+  .swatch.stage-rem { background: var(--stage-rem); }
+  .swatch.stage-awake { background: var(--stage-awake); }
+  rect.stage-deep, .bar-stage-deep { fill: var(--stage-deep); }
+  rect.stage-light, .bar-stage-light { fill: var(--stage-light); }
+  rect.stage-rem, .bar-stage-rem { fill: var(--stage-rem); }
+  rect.stage-awake, .bar-stage-awake { fill: var(--stage-awake); }
 
   .chart-nav {
     display: flex; align-items: center; justify-content: center; gap: 16px;
@@ -341,7 +350,7 @@ if ("serviceWorker" in navigator) {
       <h1>Training Dashboard</h1>
       <p class="subtitle">Week of Jul 6 '26</p>
     </div>
-    <div class="topbar-meta">Last updated<br><strong>Friday, Jul 10, 2026 - 2:11 PM</strong></div>
+    <div class="topbar-meta">Last updated<br><strong>Friday, Jul 10, 2026 - 2:59 PM</strong></div>
   </header>
   <nav class="pagenav"><a class="navlink active" href="index.html">Overview</a><a class="navlink" href="training.html">Training</a><a class="navlink" href="recovery.html">Recovery</a><a class="navlink" href="daily.html">Daily</a><a class="navlink" href="altitude.html">Altitude</a><a class="navlink" href="lifetime.html">Lifetime</a></nav>
   
