@@ -51,11 +51,16 @@ def activity_summary(a: dict) -> dict:
     distance_m = a.get("distance_m")
     duration_s = a.get("duration_s")
     elevation_gain_m = a.get("elevation_gain_m")
+    # Pace should reflect moving time, not elapsed time -- otherwise a run with a
+    # long stoplight/water-break stop reads as a much slower (and less efficient)
+    # pace than it actually was. Fall back to elapsed duration if moving duration
+    # is missing (e.g. older activities, or non-GPS activity types).
+    pace_duration_s = a.get("moving_duration_s") or duration_s
     pace_s_per_mi = None
-    if distance_m and duration_s:
+    if distance_m and pace_duration_s:
         miles = distance_m / METERS_PER_MILE
         if miles > 0:
-            pace_s_per_mi = duration_s / miles
+            pace_s_per_mi = pace_duration_s / miles
 
     avg_elevation_m = a.get("avg_elevation_m")
 
@@ -353,7 +358,8 @@ def compute_altitude_stats(data: dict) -> dict:
         hr_sum = 0.0
         for a in in_band:
             miles = a["distance_m"] / METERS_PER_MILE
-            pace_s = a["duration_s"] / miles if miles > 0 else None
+            moving_s = a.get("moving_duration_s") or a["duration_s"]
+            pace_s = moving_s / miles if miles > 0 else None
             mph = 3600 / pace_s if pace_s else None
             eff = a["avg_hr"] / mph if mph else None
             if pace_s:
@@ -381,7 +387,8 @@ def compute_altitude_stats(data: dict) -> dict:
         miles = a["distance_m"] / METERS_PER_MILE
         if miles <= 0:
             continue
-        pace_s = a["duration_s"] / miles
+        moving_s = a.get("moving_duration_s") or a["duration_s"]
+        pace_s = moving_s / miles
         mph = 3600 / pace_s
         efficiency_series.append({
             "date": a["date"],

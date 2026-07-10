@@ -247,6 +247,7 @@ def activity_fields(act: dict) -> dict:
         "start_local": start_local,
         "type": type_key,
         "duration_s": act.get("duration"),
+        "moving_duration_s": act.get("movingDuration"),
         "distance_m": act.get("distance"),
         "elevation_gain_m": act.get("elevationGain"),
         "min_elevation_m": act.get("minElevation"),
