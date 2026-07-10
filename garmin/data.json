@@ -14,19 +14,19 @@
       "avg_spo2": null,
       "avg_respiration": null,
       "heat_altitude_acclimation": null,
-      "body_battery_low": 31,
+      "body_battery_low": 12,
       "body_battery_high": 79,
-      "avg_stress": 24,
-      "steps": 5522,
-      "training_readiness": 54,
-      "vo2max": null,
-      "race_5k_s": 984,
-      "race_10k_s": 2074,
-      "race_half_s": 4464,
-      "race_marathon_s": 9238,
-      "training_status": "RECOVERY_1",
-      "acwr_ratio": 0.4,
-      "acwr_status": "LOW",
+      "avg_stress": 26,
+      "steps": 26400,
+      "training_readiness": 28,
+      "vo2max": 67.0,
+      "race_5k_s": 979,
+      "race_10k_s": 1975,
+      "race_half_s": 4459,
+      "race_marathon_s": 9226,
+      "training_status": "PRODUCTIVE_3",
+      "acwr_ratio": 0.8,
+      "acwr_status": "OPTIMAL",
       "fitness_age": null
     },
     "2026-07-08": {
@@ -16094,6 +16094,35 @@
       "acwr_ratio": null,
       "acwr_status": null,
       "fitness_age": null
+    },
+    "2026-07-10": {
+      "date": "2026-07-10",
+      "resting_hr": 44,
+      "hrv_overnight": 48,
+      "sleep_hours": 7.666666666666667,
+      "sleep_score": 84,
+      "nap_minutes": null,
+      "deep_sleep_h": 1.5666666666666667,
+      "light_sleep_h": 4.6,
+      "rem_sleep_h": 1.5,
+      "awake_h": 0.21666666666666667,
+      "avg_spo2": null,
+      "avg_respiration": null,
+      "heat_altitude_acclimation": null,
+      "body_battery_low": 19,
+      "body_battery_high": 74,
+      "avg_stress": 22,
+      "steps": 6595,
+      "training_readiness": 44,
+      "vo2max": null,
+      "race_5k_s": 979,
+      "race_10k_s": 1975,
+      "race_half_s": 4462,
+      "race_marathon_s": 9234,
+      "training_status": "RECOVERY_1",
+      "acwr_ratio": 0.7,
+      "acwr_status": "LOW",
+      "fitness_age": null
     }
   },
   "activities": {
@@ -24640,6 +24669,54 @@
       "elevation_gain_m": 19.009780883789062,
       "avg_hr": 151.0,
       "calories": 368.0
+    },
+    "2026-07-09-185117-steam-room.md": {
+      "file": "2026-07-09-185117-steam-room.md",
+      "name": "Steam Room",
+      "date": "2026-07-09",
+      "start_local": "2026-07-09 18:51:17",
+      "type": "other",
+      "duration_s": 1225.3599853515625,
+      "distance_m": 0.0,
+      "elevation_gain_m": 0.0,
+      "avg_hr": 104.0,
+      "calories": 113.0
+    },
+    "2026-07-09-182933-el-paso-county-running.md": {
+      "file": "2026-07-09-182933-el-paso-county-running.md",
+      "name": "El Paso County Running",
+      "date": "2026-07-09",
+      "start_local": "2026-07-09 18:29:33",
+      "type": "running",
+      "duration_s": 849.0549926757812,
+      "distance_m": 2780.56005859375,
+      "elevation_gain_m": 43.0,
+      "avg_hr": 151.0,
+      "calories": 171.0
+    },
+    "2026-07-09-171759-el-paso-county-running.md": {
+      "file": "2026-07-09-171759-el-paso-county-running.md",
+      "name": "El Paso County Running",
+      "date": "2026-07-09",
+      "start_local": "2026-07-09 17:17:59",
+      "type": "running",
+      "duration_s": 1995.7750244140625,
+      "distance_m": 10101.23046875,
+      "elevation_gain_m": 72.0,
+      "avg_hr": 182.0,
+      "calories": 489.0
+    },
+    "2026-07-09-164058-el-paso-county-running.md": {
+      "file": "2026-07-09-164058-el-paso-county-running.md",
+      "name": "El Paso County Running",
+      "date": "2026-07-09",
+      "start_local": "2026-07-09 16:40:58",
+      "type": "running",
+      "duration_s": 1543.6290283203125,
+      "distance_m": 4890.39990234375,
+      "elevation_gain_m": 60.0,
+      "avg_hr": 138.0,
+      "calories": 275.0
     }
   },
   "profile": {
@@ -24650,10 +24727,10 @@
         "type": "Other",
         "status": "active",
         "total_distance_m": 8767.692810155777,
-        "total_activities": 7
+        "total_activities": 8
       }
     ],
     "weekly_stress": {},
-    "lifetime_activity_count": 1842
+    "lifetime_activity_count": 1846
   }
 }
