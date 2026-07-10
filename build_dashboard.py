@@ -1202,6 +1202,9 @@ CSS = """
   }
 
   * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; min-height: 100%; }
+  html { background: var(--bg); }
+  body { background: var(--bg); }
 
   .dashboard {
     background: var(--bg);
