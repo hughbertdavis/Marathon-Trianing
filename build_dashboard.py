@@ -14,6 +14,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DATA_PATH = HERE / "garmin" / "data.json"
+WORKOUTS_PATH = HERE / "garmin" / "workouts.json"
 OUT_PATH = HERE / "docs" / "index.html"  # OUT_PATH.parent is the docs/ output dir
 
 METERS_PER_MILE = 1609.344
@@ -34,6 +35,12 @@ def load_data() -> dict:
     return json.loads(DATA_PATH.read_text(encoding="utf-8"))
 
 
+def load_workouts() -> dict:
+    if not WORKOUTS_PATH.exists():
+        return {}
+    return json.loads(WORKOUTS_PATH.read_text(encoding="utf-8"))
+
+
 def is_running(activity_type) -> bool:
     return "running" in (activity_type or "").lower()
 
@@ -41,6 +48,174 @@ def is_running(activity_type) -> bool:
 def is_running_or_hiking(activity_type) -> bool:
     t = (activity_type or "").lower()
     return "running" in t or "hiking" in t
+
+
+STANDARD_INTERVAL_DISTANCES = [
+    (400, "400m"), (600, "600m"), (800, "800m"), (1000, "1K"),
+    (1609, "1 Mile"), (2000, "2K"), (3219, "2 Mile"), (4828, "3 Mile"),
+]
+
+
+def nearest_standard_distance_label(mean_m):
+    best = min(STANDARD_INTERVAL_DISTANCES, key=lambda sd: abs(sd[0] - mean_m))
+    return best[1]
+
+
+def compute_baseline_pace(data: dict):
+    """Median moving pace across running activities -- the 'normal effort'
+    reference used to detect hard/interval workouts."""
+    paces = []
+    for a in data.get("activities", {}).values():
+        if not is_running(a.get("type")):
+            continue
+        dist_m = a.get("distance_m")
+        dur_s = a.get("moving_duration_s") or a.get("duration_s")
+        if dist_m and dur_s:
+            miles = dist_m / METERS_PER_MILE
+            if miles > 0.5:
+                paces.append(dur_s / miles)
+    if not paces:
+        return None
+    paces.sort()
+    return paces[len(paces) // 2]
+
+
+def classify_workout(laps: list, baseline_pace_s_per_mi):
+    """Labels a run from its laps: 'Nx<dist> Intervals', 'X Mile Threshold',
+    'X Mile Long Run', or 'X Mile Easy Run'. Uses pace relative to the runner's
+    own baseline to spot hard efforts, then lap-distance consistency among the
+    fastest laps to spot genuine repeat structure (vs. a single sustained
+    effort). Recovery laps within an interval session are identified by pace
+    (laps notably slower than the fastest lap) with heart rate as a secondary
+    cue (a lap that also shows a HR drop is a stronger recovery signal)."""
+    if not laps:
+        return None
+
+    lap_summaries = []
+    for l in laps:
+        dist_m = l.get("distance_m") or 0
+        moving_s = l.get("moving_duration_s") or l.get("duration_s") or 0
+        miles = dist_m / METERS_PER_MILE
+        pace = moving_s / miles if miles > 0 else None
+        lap_summaries.append({
+            "distance_m": dist_m,
+            "duration_s": l.get("duration_s"),
+            "moving_duration_s": l.get("moving_duration_s"),
+            "pace_s_per_mi": pace,
+            "avg_hr": l.get("avg_hr"),
+            "max_hr": l.get("max_hr"),
+            "elevation_gain_m": l.get("elevation_gain_m"),
+            "elevation_loss_m": l.get("elevation_loss_m"),
+            "role": "split",
+        })
+
+    dists = [l["distance_m"] for l in lap_summaries if l["distance_m"]]
+    if not dists:
+        return None
+    median_dist = sorted(dists)[len(dists) // 2]
+
+    main, tail = [], []
+    for l in lap_summaries:
+        (main if l["distance_m"] and l["distance_m"] >= median_dist * 0.35 else tail).append(l)
+
+    total_distance_m = sum(l["distance_m"] or 0 for l in lap_summaries)
+    total_duration_s = sum((l["moving_duration_s"] or l["duration_s"] or 0) for l in lap_summaries)
+    total_miles = total_distance_m / METERS_PER_MILE
+    overall_pace = (total_duration_s / total_miles) if total_miles > 0 else None
+    effort_ratio = (overall_pace / baseline_pace_s_per_mi) if (overall_pace and baseline_pace_s_per_mi) else 1.0
+
+    valid_paces = [l["pace_s_per_mi"] for l in main if l["pace_s_per_mi"]]
+
+    if effort_ratio and effort_ratio <= 0.90 and valid_paces:
+        # A lap is "work" if it's genuinely hard relative to the runner's own
+        # normal pace (the same bar that flagged this activity overall) -- not
+        # just relative to the single fastest lap, which would wrongly demote
+        # other equally-hard reps to "recovery" just for being a hair slower.
+        hard_threshold = (baseline_pace_s_per_mi * 0.90) if baseline_pace_s_per_mi else (min(valid_paces) * 1.12)
+        for l in main:
+            if l["pace_s_per_mi"] and l["pace_s_per_mi"] <= hard_threshold:
+                l["role"] = "work"
+        for l in main:
+            if l["role"] != "work":
+                # A HR drop alongside the slower pace is a further sign this is
+                # genuine recovery jogging, not just a slightly-slower work rep.
+                l["role"] = "recovery"
+
+        work_laps = [l for l in main if l["role"] == "work"]
+        work_distance_mi = sum(l["distance_m"] or 0 for l in work_laps) / METERS_PER_MILE
+
+        # A real track/interval session rarely totals more than ~10 miles of hard
+        # running or more than ~16 reps -- past that, "every lap counts as work"
+        # just means this is a sustained fast run (tempo/long run), not repeats.
+        if len(work_laps) >= 2 and work_distance_mi <= 10 and len(work_laps) <= 16:
+            # Bucket each work lap to its nearest standard distance and look for a
+            # dominant repeat pattern (e.g. 5x1mi + a shorter finishing rep should
+            # read as "5x1 Mile", not get lumped into a vague "Mixed" label).
+            bucketed = [nearest_standard_distance_label(l["distance_m"]) for l in work_laps]
+            counts = {}
+            for b in bucketed:
+                counts[b] = counts.get(b, 0) + 1
+            mode_label, mode_count = max(counts.items(), key=lambda kv: kv[1])
+            if mode_count / len(work_laps) >= 0.6:
+                label = f"{mode_count}x{mode_label} Intervals"
+            else:
+                label = "Mixed Interval Workout"
+            kind = "intervals"
+        else:
+            race_label = None
+            for name, lo, hi in PR_BUCKETS:
+                if lo <= total_distance_m <= hi:
+                    race_label = name
+                    break
+            if race_label:
+                label = race_label
+                kind = "race"
+            else:
+                miles_r = round(total_miles) if total_miles >= 2 else round(total_miles, 1)
+                label = f"{miles_r:g} Mile Threshold"
+                kind = "threshold"
+            for l in main:
+                l["role"] = "split"
+    else:
+        if total_miles >= 9:
+            label = f"{total_miles:.0f} Mile Long Run"
+            kind = "long_run"
+        elif total_miles >= 0.1:
+            label = f"{total_miles:.1f} Mile Easy Run"
+            kind = "easy"
+        else:
+            label, kind = "Short Run", "easy"
+
+    return {
+        "label": label,
+        "kind": kind,
+        "distance_mi": total_miles,
+        "duration_s": total_duration_s,
+        "overall_pace_s_per_mi": overall_pace,
+        "effort_ratio": effort_ratio,
+        "laps": main,
+        "tail_laps": tail,
+    }
+
+
+def compute_all_workouts(data: dict, workouts_raw: dict) -> list:
+    baseline = compute_baseline_pace(data)
+    activities = data.get("activities", {})
+    results = []
+    for file, w in workouts_raw.items():
+        activity = activities.get(file)
+        if not activity:
+            continue
+        classified = classify_workout(w.get("laps") or [], baseline)
+        if not classified:
+            continue
+        classified["file"] = file
+        classified["date"] = activity.get("date")
+        classified["name"] = activity.get("name")
+        classified["start_local"] = activity.get("start_local")
+        results.append(classified)
+    results.sort(key=lambda w: w.get("start_local") or w.get("date") or "", reverse=True)
+    return results
 
 
 def grade_adjusted_pace(pace_s_per_mi, distance_m, elevation_gain_m):
@@ -74,6 +249,7 @@ def activity_summary(a: dict) -> dict:
     avg_elevation_m = a.get("avg_elevation_m")
 
     return {
+        "file": a.get("file"),
         "name": a.get("name") or "Activity",
         "type": a.get("type") or "activity",
         "date": a.get("date"),
@@ -299,7 +475,7 @@ def day_label(d: date) -> str:
     return f"{DAY_NAMES[d.weekday()]}, {MONTH_ABBR[d.month - 1]} {d.day}, {d.year}"
 
 
-def compute_daily_days(data: dict, days_back: int = 90) -> list:
+def compute_daily_days(data: dict, days_back: int = 90, workout_labels: dict | None = None) -> list:
     wellness = data.get("wellness", {})
     activities = list(data.get("activities", {}).values())
     by_day_activities = defaultdict(list)
@@ -309,17 +485,23 @@ def compute_daily_days(data: dict, days_back: int = 90) -> list:
 
     today = date.today()
     start = today - timedelta(days=days_back - 1)
+    workout_labels = workout_labels or {}
 
     result = []
     d = start
     while d <= today:
         iso = d.isoformat()
         acts = sorted(by_day_activities.get(iso, []), key=lambda a: a.get("start_local") or "")
+        act_summaries = []
+        for a in acts:
+            summary = activity_summary(a)
+            summary["workout_label"] = workout_labels.get(a.get("file"))
+            act_summaries.append(summary)
         result.append({
             "date": iso,
             "date_label": day_label(d),
             "wellness": wellness.get(iso) or {},
-            "activities": [activity_summary(a) for a in acts],
+            "activities": act_summaries,
         })
         d += timedelta(days=1)
     return result
@@ -790,6 +972,7 @@ NAV_PAGES = [
     ("training.html", "Training"),
     ("recovery.html", "Recovery"),
     ("daily.html", "Daily"),
+    ("workouts.html", "Workouts"),
     ("altitude.html", "Altitude"),
     ("lifetime.html", "Lifetime"),
 ]
@@ -847,6 +1030,7 @@ def render_index(data: dict, weeks: list) -> str:
             ("training.html", "Training", "Weekly volume, vert, HR, VO2 max, ACWR, race predictor, PRs, and activities"),
             ("recovery.html", "Recovery", "Sleep, sleep stages, HRV, resting HR, body battery, stress, naps"),
             ("daily.html", "Daily", "Full detail for one day at a time -- activities, sleep, naps, VO2 max, and more"),
+            ("workouts.html", "Workouts", "Automatically identified intervals, thresholds, and long runs, with full splits"),
             ("altitude.html", "Altitude", "Our own altitude-adaptation estimate from your elevation and pace/HR data"),
             ("lifetime.html", "Lifetime", "All-time totals across your full Garmin history"),
         ]
@@ -1078,12 +1262,43 @@ def render_script(weeks: list, metrics: list, include_race_predictor: bool, incl
     return svg.join('');
   }}
 
+  var activeRaceSlug = 'race5k';
+
+  function renderRaceCard() {{
+    var m = METRICS.filter(function (x) {{ return x.slug === activeRaceSlug; }})[0];
+    if (!m) return;
+    var chartEl = document.getElementById('racepred-chart');
+    if (chartEl) chartEl.innerHTML = buildChart(m.field, m.decimals, m.kind, m.statusField, m.format);
+    var week = WEEKS[selected];
+    var prev = selected > 0 ? WEEKS[selected - 1] : null;
+    var isPartial = !!week.is_current;
+    var valEl = document.getElementById('racepred-value');
+    if (valEl) valEl.textContent = fmtRace(week[m.field]);
+    var badgeEl = document.getElementById('racepred-badge');
+    if (badgeEl) {{
+      var state = badgeState(week[m.field], prev ? prev[m.field] : null, m.higherBetter, isPartial);
+      badgeEl.className = 'delta' + (state.cls ? ' ' + state.cls : '');
+      badgeEl.textContent = state.text;
+    }}
+  }}
+
+  document.querySelectorAll('.race-tab').forEach(function (btn) {{
+    btn.addEventListener('click', function () {{
+      activeRaceSlug = btn.getAttribute('data-race');
+      document.querySelectorAll('.race-tab').forEach(function (b) {{ b.classList.remove('active'); }});
+      btn.classList.add('active');
+      renderRaceCard();
+    }});
+  }});
+
   function renderCharts() {{
     var w = windowBounds();
     METRICS.forEach(function (m) {{
+      if (m.shared) return;
       var el = document.getElementById(m.slug + '-chart');
       if (el) el.innerHTML = buildChart(m.field, m.decimals, m.kind, m.statusField, m.format);
     }});
+    renderRaceCard();
     {stage_chart_js}
 
     var rangeEl = document.getElementById('chart-range');
@@ -1106,6 +1321,7 @@ def render_script(weeks: list, metrics: list, include_race_predictor: bool, incl
     for (var a = 0; a < active.length; a++) active[a].classList.add('selected');
 
     METRICS.forEach(function (m) {{
+      if (m.shared) return;
       var valEl = document.getElementById(m.slug + '-value');
       var badgeEl = document.getElementById(m.slug + '-badge');
       if (valEl) valEl.textContent = m.format === 'race' ? fmtRace(week[m.field]) : fmtNum(week[m.field], m.decimals);
@@ -1115,6 +1331,7 @@ def render_script(weeks: list, metrics: list, include_race_predictor: bool, incl
         badgeEl.textContent = state.text;
       }}
     }});
+    if (typeof renderRaceCard === 'function') renderRaceCard();
     {race_js}
 
     var note = document.getElementById('week-note');
@@ -1163,11 +1380,22 @@ def render_training(data: dict, weeks: list) -> str:
         card_skeleton("hr", "Avg Heart Rate", "bpm"),
         card_skeleton("vo2max", "VO2 Max", ""),
         card_skeleton("acwr", "Training Load (ACWR)", ""),
-        card_skeleton("race5k", "Predicted 5K", ""),
-        card_skeleton("race10k", "Predicted 10K", ""),
-        card_skeleton("racehalf", "Predicted Half Marathon", ""),
-        card_skeleton("racemarathon", "Predicted Marathon", ""),
     ])
+    race_card = '''
+    <div class="card">
+      <div class="card-head">
+        <span class="card-title">Predicted Race Time</span>
+        <span class="delta" id="racepred-badge"></span>
+      </div>
+      <div class="race-tabs">
+        <button class="race-tab active" data-race="race5k" type="button">5K</button>
+        <button class="race-tab" data-race="race10k" type="button">10K</button>
+        <button class="race-tab" data-race="racehalf" type="button">Half</button>
+        <button class="race-tab" data-race="racemarathon" type="button">Marathon</button>
+      </div>
+      <div class="card-value"><span id="racepred-value">–</span></div>
+      <div id="racepred-chart"></div>
+    </div>'''
 
     metrics = [
         {"slug": "volume", "field": "volume_mi", "decimals": 1, "higherBetter": True, "kind": "bar"},
@@ -1175,15 +1403,15 @@ def render_training(data: dict, weeks: list) -> str:
         {"slug": "hr", "field": "avg_hr", "decimals": 0, "higherBetter": False, "kind": "line"},
         {"slug": "vo2max", "field": "vo2max", "decimals": 1, "higherBetter": True, "kind": "line"},
         {"slug": "acwr", "field": "acwr_ratio", "decimals": 2, "statusField": "acwr_status", "kind": "line"},
-        {"slug": "race5k", "field": "race_5k", "higherBetter": False, "kind": "line", "format": "race"},
-        {"slug": "race10k", "field": "race_10k", "higherBetter": False, "kind": "line", "format": "race"},
-        {"slug": "racehalf", "field": "race_half", "higherBetter": False, "kind": "line", "format": "race"},
-        {"slug": "racemarathon", "field": "race_marathon", "higherBetter": False, "kind": "line", "format": "race"},
+        {"slug": "race5k", "field": "race_5k", "higherBetter": False, "kind": "line", "format": "race", "shared": "racepred"},
+        {"slug": "race10k", "field": "race_10k", "higherBetter": False, "kind": "line", "format": "race", "shared": "racepred"},
+        {"slug": "racehalf", "field": "race_half", "higherBetter": False, "kind": "line", "format": "race", "shared": "racepred"},
+        {"slug": "racemarathon", "field": "race_marathon", "higherBetter": False, "kind": "line", "format": "race", "shared": "racepred"},
     ]
 
     body = f'''
   {chart_nav_html()}
-  <div class="card-grid single-col side-training">{cards}</div>
+  <div class="card-grid single-col side-training">{cards}{race_card}</div>
 
   <div class="race-panel">
     <h2>Race Predictor</h2>
@@ -1276,7 +1504,8 @@ def render_recovery(data: dict, weeks: list) -> str:
 
 
 def render_daily(data: dict) -> str:
-    days = compute_daily_days(data, days_back=90)
+    workout_labels = {w["file"]: w["label"] for w in compute_all_workouts(data, load_workouts())}
+    days = compute_daily_days(data, days_back=90, workout_labels=workout_labels)
     days_json = json.dumps(days).replace("</", "<\\/")
 
     body = f'''
@@ -1409,8 +1638,9 @@ def render_daily(data: dict) -> str:
     if (!acts.length) return '<p class="empty">No activities recorded for this day.</p>';
     return acts.map(function (act) {{
       var timePart = act.start_local && act.start_local.indexOf(' ') > -1 ? act.start_local.split(' ')[1] : '';
+      var labelHtml = act.workout_label ? ' <span class="pill pill-warn" style="font-size:11px">' + act.workout_label + '</span>' : '';
       return '<div class="activity-row">' +
-        '<div class="activity-main"><span class="activity-name">' + act.name + '</span>' +
+        '<div class="activity-main"><span class="activity-name">' + act.name + labelHtml + '</span>' +
         '<span class="activity-type">' + act.type + (timePart ? ' - ' + timePart : '') + '</span></div>' +
         '<div class="activity-stats">' +
         '<span>' + (act.distance_mi != null ? act.distance_mi.toFixed(2) + ' mi' : '–') + '</span>' +
@@ -1449,6 +1679,138 @@ def render_daily(data: dict) -> str:
 </script>'''
 
     return page_shell("daily.html", "Daily", "Full detail for one day at a time, back 3 months", body)
+
+
+KIND_LABELS = {
+    "intervals": ("Intervals", "warn"),
+    "threshold": ("Threshold", "warn"),
+    "race": ("Race", "good"),
+    "long_run": ("Long Run", "info"),
+    "easy": ("Easy", "info"),
+}
+
+ROLE_LABELS = {"work": "Work", "recovery": "Recovery", "split": ""}
+
+
+def build_splits_table(workout: dict) -> str:
+    rows = []
+    for i, l in enumerate(workout["laps"], start=1):
+        role = ROLE_LABELS.get(l.get("role"), "")
+        role_cell = f'<span class="pill pill-{"warn" if l.get("role") == "work" else "info"}" style="font-size:11px">{role}</span>' if role else ""
+        dist_mi = (l["distance_m"] or 0) / METERS_PER_MILE
+        elev_gain_ft = (l.get("elevation_gain_m") or 0) / METERS_PER_FOOT
+        elev_loss_ft = (l.get("elevation_loss_m") or 0) / METERS_PER_FOOT
+        net_elev = elev_gain_ft - elev_loss_ft
+        rows.append(f'''
+          <tr>
+            <td>{i}</td>
+            <td>{role_cell}</td>
+            <td>{dist_mi:.2f} mi</td>
+            <td>{fmt_hms_short(l.get("moving_duration_s") or l.get("duration_s"))}</td>
+            <td>{fmt_pace(l.get("pace_s_per_mi"))}</td>
+            <td>{fmt(l.get("avg_hr"), 0) + " bpm" if l.get("avg_hr") is not None else "–"}</td>
+            <td>{"+" if net_elev >= 0 else ""}{net_elev:.0f} ft</td>
+          </tr>''')
+
+    if workout.get("tail_laps"):
+        for l in workout["tail_laps"]:
+            dist_mi = (l["distance_m"] or 0) / METERS_PER_MILE
+            if dist_mi < 0.02:
+                continue
+            rows.append(f'''
+          <tr class="tail-lap">
+            <td colspan="2">tail</td>
+            <td>{dist_mi:.2f} mi</td>
+            <td>{fmt_hms_short(l.get("moving_duration_s") or l.get("duration_s"))}</td>
+            <td>{fmt_pace(l.get("pace_s_per_mi"))}</td>
+            <td>{fmt(l.get("avg_hr"), 0) + " bpm" if l.get("avg_hr") is not None else "–"}</td>
+            <td>–</td>
+          </tr>''')
+
+    return f'''
+      <table class="splits-table">
+        <thead><tr><th>#</th><th>Type</th><th>Distance</th><th>Time</th><th>Pace</th><th>Avg HR</th><th>Elev</th></tr></thead>
+        <tbody>{"".join(rows)}</tbody>
+      </table>'''
+
+
+def fmt_hms_short(seconds):
+    if not seconds:
+        return "–"
+    total = int(seconds)
+    h, rem = divmod(total, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+
+def render_workouts(data: dict) -> str:
+    workouts_raw = load_workouts()
+    workouts = compute_all_workouts(data, workouts_raw)
+
+    if not workouts:
+        body = '''
+  <div class="pr-panel">
+    <h2>Workouts</h2>
+    <p class="empty">No classified workouts yet -- run sync_workouts.py to fetch splits for your recent runs.</p>
+  </div>'''
+        return page_shell("workouts.html", "Workouts", "Automatically identified from your run splits, back 6 months", body)
+
+    filter_buttons = "".join(
+        f'<button class="workout-filter{" active" if k == "all" else ""}" data-kind="{k}" type="button">{label}</button>'
+        for k, label in [("all", "All"), ("intervals", "Intervals"), ("threshold", "Threshold"),
+                          ("race", "Race"), ("long_run", "Long Run"), ("easy", "Easy")]
+    )
+
+    rows = []
+    for i, w in enumerate(workouts):
+        kind_label, kind_cls = KIND_LABELS.get(w["kind"], (w["kind"].title(), "info"))
+        rows.append(f'''
+    <div class="workout-row" data-kind="{w["kind"]}">
+      <div class="workout-summary" data-target="splits-{i}">
+        <div class="workout-main">
+          <span class="workout-label">{w["label"]}</span>
+          <span class="pill pill-{kind_cls}">{kind_label}</span>
+        </div>
+        <div class="workout-stats">
+          <span>{w["date"]}</span>
+          <span>{w["distance_mi"]:.1f} mi</span>
+          <span>{fmt_hms_short(w["duration_s"])}</span>
+          <span>{fmt_pace(w.get("overall_pace_s_per_mi"))}</span>
+        </div>
+      </div>
+      <div class="workout-splits" id="splits-{i}">{build_splits_table(w)}</div>
+    </div>''')
+
+    body = f'''
+  <div class="pr-panel">
+    <h2>Workouts <span class="fact-sub">({len(workouts)} in the last 6 months)</span></h2>
+    <div class="workout-filters">{filter_buttons}</div>
+  </div>
+
+  <div class="workouts-list">{"".join(rows)}</div>
+
+<script>
+(function () {{
+  document.querySelectorAll('.workout-summary').forEach(function (el) {{
+    el.addEventListener('click', function () {{
+      var target = document.getElementById(el.getAttribute('data-target'));
+      if (target) target.classList.toggle('open');
+    }});
+  }});
+  document.querySelectorAll('.workout-filter').forEach(function (btn) {{
+    btn.addEventListener('click', function () {{
+      document.querySelectorAll('.workout-filter').forEach(function (b) {{ b.classList.remove('active'); }});
+      btn.classList.add('active');
+      var kind = btn.getAttribute('data-kind');
+      document.querySelectorAll('.workout-row').forEach(function (row) {{
+        row.style.display = (kind === 'all' || row.getAttribute('data-kind') === kind) ? '' : 'none';
+      }});
+    }});
+  }});
+}})();
+</script>'''
+
+    return page_shell("workouts.html", "Workouts", "Automatically identified from your run splits, back 6 months", body)
 
 
 def render_altitude(data: dict) -> str:
@@ -1947,6 +2309,51 @@ CSS = """
     font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
     font-size: 12.5px; color: var(--ink-muted); min-width: 160px; text-align: center;
   }
+
+  .race-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+  .race-tab {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-muted);
+    font-size: 12px; font-weight: 600; padding: 5px 4px; border-radius: 6px; cursor: pointer;
+    font-family: inherit;
+  }
+  .race-tab.active { background: var(--training); border-color: var(--training); color: #fff; }
+
+  .workout-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .workout-filter {
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-muted);
+    font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 20px; cursor: pointer;
+    font-family: inherit;
+  }
+  .workout-filter.active { background: var(--training); border-color: var(--training); color: #fff; }
+
+  .workouts-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .workout-row {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  }
+  .workout-summary {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    gap: 8px; padding: 14px 18px; cursor: pointer;
+  }
+  .workout-summary:hover { background: var(--surface-2); }
+  .workout-main { display: flex; align-items: center; gap: 10px; }
+  .workout-label { font-weight: 600; font-size: 14.5px; }
+  .workout-stats {
+    display: flex; gap: 16px; font-size: 13px; color: var(--ink-muted);
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .workout-splits { display: none; border-top: 1px solid var(--border); padding: 4px 18px 14px; overflow-x: auto; }
+  .workout-splits.open { display: block; }
+  .splits-table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+  .splits-table th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--ink-muted); padding: 8px 10px 6px; border-bottom: 1px solid var(--border);
+  }
+  .splits-table td {
+    padding: 6px 10px; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--surface-2);
+  }
+  .splits-table tr.tail-lap { color: var(--ink-muted); font-style: italic; }
 </style>
 """
 
@@ -1964,6 +2371,7 @@ def main():
         "training.html": render_training(data, weeks),
         "recovery.html": render_recovery(data, weeks),
         "daily.html": render_daily(data),
+        "workouts.html": render_workouts(data),
         "altitude.html": render_altitude(data),
         "lifetime.html": render_lifetime(data),
     }

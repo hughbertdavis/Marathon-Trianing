@@ -343,6 +343,51 @@ if ("serviceWorker" in navigator) {
     font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
     font-size: 12.5px; color: var(--ink-muted); min-width: 160px; text-align: center;
   }
+
+  .race-tabs { display: flex; gap: 4px; margin-bottom: 8px; }
+  .race-tab {
+    flex: 1; background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-muted);
+    font-size: 12px; font-weight: 600; padding: 5px 4px; border-radius: 6px; cursor: pointer;
+    font-family: inherit;
+  }
+  .race-tab.active { background: var(--training); border-color: var(--training); color: #fff; }
+
+  .workout-filters { display: flex; gap: 6px; flex-wrap: wrap; }
+  .workout-filter {
+    background: var(--surface-2); border: 1px solid var(--border); color: var(--ink-muted);
+    font-size: 12.5px; font-weight: 600; padding: 6px 12px; border-radius: 20px; cursor: pointer;
+    font-family: inherit;
+  }
+  .workout-filter.active { background: var(--training); border-color: var(--training); color: #fff; }
+
+  .workouts-list { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .workout-row {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+  }
+  .workout-summary {
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;
+    gap: 8px; padding: 14px 18px; cursor: pointer;
+  }
+  .workout-summary:hover { background: var(--surface-2); }
+  .workout-main { display: flex; align-items: center; gap: 10px; }
+  .workout-label { font-weight: 600; font-size: 14.5px; }
+  .workout-stats {
+    display: flex; gap: 16px; font-size: 13px; color: var(--ink-muted);
+    font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .workout-splits { display: none; border-top: 1px solid var(--border); padding: 4px 18px 14px; overflow-x: auto; }
+  .workout-splits.open { display: block; }
+  .splits-table { width: 100%; border-collapse: collapse; font-size: 13px; white-space: nowrap; }
+  .splits-table th {
+    text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--ink-muted); padding: 8px 10px 6px; border-bottom: 1px solid var(--border);
+  }
+  .splits-table td {
+    padding: 6px 10px; font-family: ui-monospace, "Cascadia Code", "SF Mono", Consolas, monospace;
+    font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--surface-2);
+  }
+  .splits-table tr.tail-lap { color: var(--ink-muted); font-style: italic; }
 </style>
 <div class="dashboard">
   <header class="topbar">
@@ -350,9 +395,9 @@ if ("serviceWorker" in navigator) {
       <h1>Training Dashboard</h1>
       <p class="subtitle">Estimated from your elevation and pace/HR data</p>
     </div>
-    <div class="topbar-meta">Last updated<br><strong>Friday, Jul 10, 2026 - 2:59 PM</strong></div>
+    <div class="topbar-meta">Last updated<br><strong>Friday, Jul 10, 2026 - 9:30 PM</strong></div>
   </header>
-  <nav class="pagenav"><a class="navlink" href="index.html">Overview</a><a class="navlink" href="training.html">Training</a><a class="navlink" href="recovery.html">Recovery</a><a class="navlink" href="daily.html">Daily</a><a class="navlink active" href="altitude.html">Altitude</a><a class="navlink" href="lifetime.html">Lifetime</a></nav>
+  <nav class="pagenav"><a class="navlink" href="index.html">Overview</a><a class="navlink" href="training.html">Training</a><a class="navlink" href="recovery.html">Recovery</a><a class="navlink" href="daily.html">Daily</a><a class="navlink" href="workouts.html">Workouts</a><a class="navlink active" href="altitude.html">Altitude</a><a class="navlink" href="lifetime.html">Lifetime</a></nav>
   
   <div class="pr-panel">
     <h2>Altitude Snapshot</h2>

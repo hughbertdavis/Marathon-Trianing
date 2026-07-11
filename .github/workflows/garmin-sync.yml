@@ -24,6 +24,8 @@ jobs:
 
       - run: python sync_garmin.py --days 3 --out garmin
 
+      - run: python sync_workouts.py --days 180
+
       - run: python build_dashboard.py
 
       - name: Commit updated data

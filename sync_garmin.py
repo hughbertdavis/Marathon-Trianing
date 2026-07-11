@@ -242,6 +242,7 @@ def activity_fields(act: dict) -> dict:
 
     return {
         "file": filename,
+        "activity_id": act.get("activityId"),
         "name": name,
         "date": date_part,
         "start_local": start_local,

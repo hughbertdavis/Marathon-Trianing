@@ -34,6 +34,7 @@ def main():
             existing["max_elevation_m"] = f["max_elevation_m"]
             existing["avg_elevation_m"] = f["avg_elevation_m"]
             existing["moving_duration_s"] = f["moving_duration_s"]
+            existing["activity_id"] = f["activity_id"]
             updated += 1
 
     DATA_PATH.write_text(json.dumps(data, indent=2), encoding="utf-8")
