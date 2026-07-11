@@ -355,13 +355,10 @@ def classify_workout(laps: list, baseline_pace_s_per_mi, series: dict | None = N
             for l in main:
                 l["role"] = "split"
     else:
-        # Only the single longest run each week gets called out as a "Long
-        # Run" -- see the week-level dedup in compute_all_workouts. Anything
-        # under 10mi (or a same-week runner-up) is just an easy/steady day.
-        if total_miles >= 10:
-            label = f"{total_miles:.0f} Mile Long Run"
-            kind = "long_run"
-        elif total_miles >= 0.1:
+        # "Long run" isn't decided here -- see the trailing-7-day mileage
+        # test in compute_all_workouts, which needs the runner's other
+        # activities to evaluate.
+        if total_miles >= 0.1:
             label = f"{total_miles:.1f} Mile Easy Run"
             kind = "easy"
         else:
@@ -382,6 +379,19 @@ def classify_workout(laps: list, baseline_pace_s_per_mi, series: dict | None = N
 def compute_all_workouts(data: dict, workouts_raw: dict) -> list:
     baseline = compute_baseline_pace(data)
     activities = data.get("activities", {})
+
+    # Daily running mileage across ALL activities (not just ones with cached
+    # splits) -- needed to test a candidate long run against its trailing
+    # 7-day volume, below.
+    daily_miles = defaultdict(float)
+    for a in activities.values():
+        if is_running(a.get("type")) and a.get("date") and a.get("distance_m"):
+            daily_miles[a["date"]] += a["distance_m"] / METERS_PER_MILE
+
+    def trailing_7d_miles(iso_date):
+        d = datetime.strptime(iso_date, "%Y-%m-%d").date()
+        return sum(daily_miles.get((d - timedelta(days=k)).isoformat(), 0.0) for k in range(7))
+
     results = []
     for file, w in workouts_raw.items():
         activity = activities.get(file)
@@ -396,20 +406,26 @@ def compute_all_workouts(data: dict, workouts_raw: dict) -> list:
         classified["start_local"] = activity.get("start_local")
         results.append(classified)
 
-    # Only the single longest qualifying run (>=10mi) each Monday-Sunday week
-    # counts as that week's "Long Run" -- a same-week runner-up that also
-    # cleared the bar is really just another easy/steady day, not a second
-    # long run.
-    by_week = defaultdict(list)
+    # A long run is one that makes up 20-25% of the trailing 7-day mileage,
+    # evaluated per-activity against its own rolling week rather than an
+    # absolute mileage cutoff. If a stretch of similar-distance days makes
+    # more than one candidate clear the bar in the same calendar week, only
+    # the longest keeps the "Long Run" tag -- a training week has one.
+    candidates = []
     for w in results:
-        if w["kind"] == "long_run" and w.get("date"):
-            d = datetime.strptime(w["date"], "%Y-%m-%d").date()
-            by_week[week_start(d)].append(w)
+        if w["kind"] == "easy" and w.get("date"):
+            week_total = trailing_7d_miles(w["date"])
+            if week_total > 0 and 0.20 <= w["distance_mi"] / week_total <= 0.25:
+                candidates.append(w)
+
+    by_week = defaultdict(list)
+    for w in candidates:
+        d = datetime.strptime(w["date"], "%Y-%m-%d").date()
+        by_week[week_start(d)].append(w)
     for group in by_week.values():
-        group.sort(key=lambda w: w["distance_mi"], reverse=True)
-        for demoted in group[1:]:
-            demoted["kind"] = "easy"
-            demoted["label"] = f"{demoted['distance_mi']:.1f} Mile Easy Run"
+        best = max(group, key=lambda w: w["distance_mi"])
+        best["kind"] = "long_run"
+        best["label"] = f"{best['distance_mi']:.0f} Mile Long Run"
 
     results.sort(key=lambda w: w.get("start_local") or w.get("date") or "", reverse=True)
     return results
