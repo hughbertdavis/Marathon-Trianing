@@ -5,5 +5,6 @@
 - Distance: 10.10 km
 - Duration: 33m
 - Elevation gain: 72 m
+- Avg elevation: 2151 m
 - Avg HR: 182 bpm
 - Calories: 489
