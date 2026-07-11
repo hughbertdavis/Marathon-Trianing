@@ -55,6 +55,24 @@ STANDARD_INTERVAL_DISTANCES = [
     (1609, "1 Mile"), (2000, "2K"), (3219, "2 Mile"), (4828, "3 Mile"),
 ]
 
+# Pace threshold for "hard work" as a fraction of the runner's own baseline
+# pace (lower = faster = stricter). Widened from an earlier, stricter cut so
+# moderate-hard reps (e.g. mile/2K repeats at a controlled pace, not just
+# all-out 400s) still register as work.
+WORK_FACTOR = 0.93
+# A sample/segment pace slower than this fraction of baseline counts as a
+# jogged recovery within a continuously-recorded stretch.
+RECOVERY_FACTOR = 1.15
+# A gap this long between consecutive time-series samples means the watch
+# auto-paused on a full stop -- a much stronger rest signal than any pace or
+# heart-rate reading, since Garmin's official laps don't record these at all.
+GAP_S = 15
+# Trailing window used to compute a rolling pace at each time-series sample.
+WINDOW_S = 30
+# Minimum duration for a detected work/recovery stretch to count -- shorter
+# blips get merged into their neighbor instead of fragmenting the workout.
+MIN_SEG_S = 20
+
 
 def nearest_standard_distance_label(mean_m):
     best = min(STANDARD_INTERVAL_DISTANCES, key=lambda sd: abs(sd[0] - mean_m))
@@ -80,14 +98,131 @@ def compute_baseline_pace(data: dict):
     return paces[len(paces) // 2]
 
 
-def classify_workout(laps: list, baseline_pace_s_per_mi):
-    """Labels a run from its laps: 'Nx<dist> Intervals', 'X Mile Threshold',
-    'X Mile Long Run', or 'X Mile Easy Run'. Uses pace relative to the runner's
-    own baseline to spot hard efforts, then lap-distance consistency among the
-    fastest laps to spot genuine repeat structure (vs. a single sustained
-    effort). Recovery laps within an interval session are identified by pace
-    (laps notably slower than the fastest lap) with heart rate as a secondary
-    cue (a lap that also shows a HR drop is a stronger recovery signal)."""
+def detect_series_segments(series: dict, baseline_pace_s_per_mi):
+    """Split a run's time series into real work/recovery segments.
+
+    Two signals, both far more reliable than Garmin's official lap
+    boundaries (which routinely split one hard rep in two when an auto-lap
+    fires mid-interval, or merge separate reps together):
+
+    1. Recording gaps -- the watch auto-pausing during a full-stop recovery
+       (confirmed against real data: a ~200s+ gap in the timestamp stream,
+       heart rate dropping ~60-70bpm across it).
+    2. Within a continuously-recorded stretch, sustained slow-pace running
+       (a jogged, not stopped, recovery) via a rolling-window pace estimate.
+    """
+    if not series or not baseline_pace_s_per_mi:
+        return None
+    t, d, hr = series.get("t"), series.get("d"), series.get("hr")
+    if not t or not d or len(t) < 4:
+        return None
+    ele = series.get("ele") or [None] * len(t)
+    n = len(t)
+
+    blocks = []
+    cur = [0]
+    for i in range(1, n):
+        if t[i] - t[i - 1] > GAP_S:
+            blocks.append(cur)
+            cur = []
+        cur.append(i)
+    blocks.append(cur)
+
+    def segment_from(idxs, role, gap):
+        a, b = idxs[0], idxs[-1]
+        hrs = [hr[i] for i in idxs if hr[i]]
+        eles = [ele[i] for i in idxs if ele[i] is not None]
+        gain = loss = 0.0
+        for k in range(1, len(eles)):
+            delta = eles[k] - eles[k - 1]
+            if delta > 0:
+                gain += delta
+            else:
+                loss += -delta
+        dist_m = max(d[b] - d[a], 0)
+        dur_s = max(t[b] - t[a], 0)
+        miles = dist_m / METERS_PER_MILE
+        return {
+            "distance_m": dist_m,
+            "duration_s": dur_s,
+            "moving_duration_s": dur_s,
+            "pace_s_per_mi": (dur_s / miles) if miles > 0.05 else None,
+            "avg_hr": (sum(hrs) / len(hrs)) if hrs else None,
+            "max_hr": max(hrs) if hrs else None,
+            "elevation_gain_m": gain,
+            "elevation_loss_m": loss,
+            "role": role,
+            "gap": gap,
+        }
+
+    segments = []
+    for bi, block in enumerate(blocks):
+        if bi > 0:
+            prev_end, this_start = blocks[bi - 1][-1], block[0]
+            # A recording gap (the watch auto-pausing on a full stop) is
+            # strong, unambiguous rest evidence.
+            segments.append(segment_from([prev_end, this_start], "recovery", gap=True))
+
+        # Hysteresis, not a hard work/recovery split on every sample: a pace
+        # between the two thresholds is ambiguous "still cruising" and just
+        # keeps whatever state was already active. Without this, ordinary
+        # pace noise on an easy run (a red light, a slight incline) flips the
+        # state back and forth and fabricates fake interval structure.
+        state = []
+        j = 0
+        last = "work"
+        for i in range(len(block)):
+            while t[block[i]] - t[block[j]] > WINDOW_S and j < i:
+                j += 1
+            gi, gj = block[i], block[j]
+            dt, dd = t[gi] - t[gj], d[gi] - d[gj]
+            pace = (dt / (dd / METERS_PER_MILE)) if (dt > 0 and dd > 0) else None
+            if pace is not None and pace <= baseline_pace_s_per_mi * WORK_FACTOR:
+                cur = "work"
+            elif pace is not None and pace >= baseline_pace_s_per_mi * RECOVERY_FACTOR:
+                cur = "recovery"
+            else:
+                cur = last
+            state.append(cur)
+            last = cur
+
+        runs = []
+        s0 = 0
+        for i in range(1, len(block) + 1):
+            if i == len(block) or state[i] != state[s0]:
+                runs.append((state[s0], s0, i - 1))
+                s0 = i
+
+        merged = []
+        for kind, a, b in runs:
+            dur = t[block[b]] - t[block[a]]
+            if merged and dur < MIN_SEG_S:
+                merged[-1] = (merged[-1][0], merged[-1][1], b)
+            else:
+                merged.append((kind, a, b))
+        final = []
+        for kind, a, b in merged:
+            if final and final[-1][0] == kind:
+                final[-1] = (kind, final[-1][1], b)
+            else:
+                final.append((kind, a, b))
+
+        for kind, a, b in final:
+            segments.append(segment_from(block[a:b + 1], kind, gap=False))
+
+    return segments
+
+
+def classify_workout(laps: list, baseline_pace_s_per_mi, series: dict | None = None):
+    """Labels a run as 'Nx<dist> Intervals', 'X Mile Threshold',
+    'X Mile Long Run', or 'X Mile Easy Run'.
+
+    When a time series is available, real work/recovery structure comes from
+    detect_series_segments() (recording gaps + rolling-pace recovery
+    detection) rather than Garmin's lap boundaries, which are not a reliable
+    interval signal on their own. Lap data is still used for the activity's
+    overall distance/duration/pace, and as a fallback splits source for
+    non-interval runs and for older activities without cached series data."""
     if not laps:
         return None
 
@@ -124,21 +259,67 @@ def classify_workout(laps: list, baseline_pace_s_per_mi):
     overall_pace = (total_duration_s / total_miles) if total_miles > 0 else None
     effort_ratio = (overall_pace / baseline_pace_s_per_mi) if (overall_pace and baseline_pace_s_per_mi) else 1.0
 
+    # --- Series-based interval detection (preferred) ---
+    segments = detect_series_segments(series, baseline_pace_s_per_mi) if series else None
+    if segments:
+        work_segments = [s for s in segments if s["role"] == "work"]
+        rest_segments = [s for s in segments if s["role"] != "work"]
+        work_distance_mi = sum(s["distance_m"] or 0 for s in work_segments) / METERS_PER_MILE
+        work_duration_s = sum(s["duration_s"] or 0 for s in work_segments)
+        max_seg_mi = max(((s["distance_m"] or 0) / METERS_PER_MILE for s in work_segments), default=0)
+        avg_work_pace = (work_duration_s / work_distance_mi) if work_distance_mi > 0.05 else None
+        # A recording-gap rest (the watch auto-pausing on a full stop) is
+        # strong, specific evidence -- two reps either side of one is enough.
+        # A pace-only "recovery" (still recording, just slower) is weaker --
+        # a single red light or water stop can look like this on an otherwise
+        # ordinary run, so require more than one instance before trusting it.
+        has_hard_rest = any(s.get("gap") for s in rest_segments)
+        min_reps = 2 if has_hard_rest else 3
+        genuinely_hard = (
+            avg_work_pace is not None
+            and baseline_pace_s_per_mi
+            and avg_work_pace <= baseline_pace_s_per_mi * 0.97
+        )
+        if (
+            len(work_segments) >= min_reps
+            and work_distance_mi <= 10
+            and len(work_segments) <= 16
+            and max_seg_mi <= 3.5
+            and genuinely_hard
+        ):
+            bucketed = [nearest_standard_distance_label(s["distance_m"]) for s in work_segments]
+            counts = {}
+            for b in bucketed:
+                counts[b] = counts.get(b, 0) + 1
+            mode_label, mode_count = max(counts.items(), key=lambda kv: kv[1])
+            label = (
+                f"{mode_count}x{mode_label} Intervals"
+                if mode_count / len(work_segments) >= 0.6
+                else "Mixed Interval Workout"
+            )
+            return {
+                "label": label,
+                "kind": "intervals",
+                "distance_mi": total_miles,
+                "duration_s": total_duration_s,
+                "overall_pace_s_per_mi": overall_pace,
+                "effort_ratio": effort_ratio,
+                "laps": segments,
+                "tail_laps": [],
+            }
+
+    # --- Fallback: lap-based detection (older activities without cached
+    # series data, or activities where the series didn't reveal any genuine
+    # recovery structure) ---
     valid_paces = [l["pace_s_per_mi"] for l in main if l["pace_s_per_mi"]]
 
-    if effort_ratio and effort_ratio <= 0.90 and valid_paces:
-        # A lap is "work" if it's genuinely hard relative to the runner's own
-        # normal pace (the same bar that flagged this activity overall) -- not
-        # just relative to the single fastest lap, which would wrongly demote
-        # other equally-hard reps to "recovery" just for being a hair slower.
-        hard_threshold = (baseline_pace_s_per_mi * 0.90) if baseline_pace_s_per_mi else (min(valid_paces) * 1.12)
+    if effort_ratio and effort_ratio <= WORK_FACTOR and valid_paces:
+        hard_threshold = (baseline_pace_s_per_mi * WORK_FACTOR) if baseline_pace_s_per_mi else (min(valid_paces) * 1.12)
         for l in main:
             if l["pace_s_per_mi"] and l["pace_s_per_mi"] <= hard_threshold:
                 l["role"] = "work"
         for l in main:
             if l["role"] != "work":
-                # A HR drop alongside the slower pace is a further sign this is
-                # genuine recovery jogging, not just a slightly-slower work rep.
                 l["role"] = "recovery"
 
         work_laps = [l for l in main if l["role"] == "work"]
@@ -148,9 +329,6 @@ def classify_workout(laps: list, baseline_pace_s_per_mi):
         # running or more than ~16 reps -- past that, "every lap counts as work"
         # just means this is a sustained fast run (tempo/long run), not repeats.
         if len(work_laps) >= 2 and work_distance_mi <= 10 and len(work_laps) <= 16:
-            # Bucket each work lap to its nearest standard distance and look for a
-            # dominant repeat pattern (e.g. 5x1mi + a shorter finishing rep should
-            # read as "5x1 Mile", not get lumped into a vague "Mixed" label).
             bucketed = [nearest_standard_distance_label(l["distance_m"]) for l in work_laps]
             counts = {}
             for b in bucketed:
@@ -177,7 +355,10 @@ def classify_workout(laps: list, baseline_pace_s_per_mi):
             for l in main:
                 l["role"] = "split"
     else:
-        if total_miles >= 9:
+        # Only the single longest run each week gets called out as a "Long
+        # Run" -- see the week-level dedup in compute_all_workouts. Anything
+        # under 10mi (or a same-week runner-up) is just an easy/steady day.
+        if total_miles >= 10:
             label = f"{total_miles:.0f} Mile Long Run"
             kind = "long_run"
         elif total_miles >= 0.1:
@@ -206,7 +387,7 @@ def compute_all_workouts(data: dict, workouts_raw: dict) -> list:
         activity = activities.get(file)
         if not activity:
             continue
-        classified = classify_workout(w.get("laps") or [], baseline)
+        classified = classify_workout(w.get("laps") or [], baseline, w.get("series"))
         if not classified:
             continue
         classified["file"] = file
@@ -214,6 +395,22 @@ def compute_all_workouts(data: dict, workouts_raw: dict) -> list:
         classified["name"] = activity.get("name")
         classified["start_local"] = activity.get("start_local")
         results.append(classified)
+
+    # Only the single longest qualifying run (>=10mi) each Monday-Sunday week
+    # counts as that week's "Long Run" -- a same-week runner-up that also
+    # cleared the bar is really just another easy/steady day, not a second
+    # long run.
+    by_week = defaultdict(list)
+    for w in results:
+        if w["kind"] == "long_run" and w.get("date"):
+            d = datetime.strptime(w["date"], "%Y-%m-%d").date()
+            by_week[week_start(d)].append(w)
+    for group in by_week.values():
+        group.sort(key=lambda w: w["distance_mi"], reverse=True)
+        for demoted in group[1:]:
+            demoted["kind"] = "easy"
+            demoted["label"] = f"{demoted['distance_mi']:.1f} Mile Easy Run"
+
     results.sort(key=lambda w: w.get("start_local") or w.get("date") or "", reverse=True)
     return results
 
@@ -335,10 +532,13 @@ def bucket_weeks(data: dict) -> list:
             "sleep_h": avg(wel, "sleep_hours"),
             "hrv_ms": avg(wel, "hrv_overnight"),
             "readiness": avg(wel, "training_readiness"),
-            "race_5k": avg(wel, "race_5k_s"),
-            "race_10k": avg(wel, "race_10k_s"),
-            "race_half": avg(wel, "race_half_s"),
-            "race_marathon": avg(wel, "race_marathon_s"),
+            # Race predictions are a running snapshot, not something to average --
+            # the latest known value in the week is what should match the Daily
+            # page's per-day figure, not a blend of the whole week's readings.
+            "race_5k": latest(wel, "race_5k_s"),
+            "race_10k": latest(wel, "race_10k_s"),
+            "race_half": latest(wel, "race_half_s"),
+            "race_marathon": latest(wel, "race_marathon_s"),
             "training_status": latest(wel, "training_status"),
             "acwr_ratio": avg(wel, "acwr_ratio"),
             "acwr_status": latest(wel, "acwr_status"),
@@ -908,8 +1108,8 @@ def static_line_chart(values, labels, decimals=0, axis_labels=False, y_suffix=""
     With axis_labels=True, adds y-axis min/max value labels and several x-axis date
     ticks instead of just the first/last."""
     W, H = 320, 110 if axis_labels else 84
-    pad_l = 38 if axis_labels else 8
-    pad_r, pad_t, pad_b = 10, 10, 18
+    pad_l = 10 if axis_labels else 8
+    pad_r, pad_t, pad_b = 10, 20, 18
     plot_w = W - pad_l - pad_r
     plot_h = H - pad_t - pad_b
 
@@ -947,8 +1147,8 @@ def static_line_chart(values, labels, decimals=0, axis_labels=False, y_suffix=""
         svg.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{r}" class="{cls}"><title>{labels[i]}: {fmt(v, decimals)}</title></circle>')
 
     if axis_labels:
-        svg.append(f'<text x="{pad_l - 6}" y="{pad_t + 3}" class="spark-tick" text-anchor="end">{fmt(vmax, decimals)}{y_suffix}</text>')
-        svg.append(f'<text x="{pad_l - 6}" y="{baseline_y}" class="spark-tick" text-anchor="end">{fmt(vmin, decimals)}{y_suffix}</text>')
+        svg.append(f'<text x="{pad_l + 4}" y="{pad_t + 12}" class="spark-tick" text-anchor="start">{fmt(vmax, decimals)}{y_suffix}</text>')
+        svg.append(f'<text x="{pad_l + 4}" y="{baseline_y - 4}" class="spark-tick" text-anchor="start">{fmt(vmin, decimals)}{y_suffix}</text>')
         n_ticks = min(4, len(pts))
         tick_idxs = sorted(set(pts[round(k * (len(pts) - 1) / (n_ticks - 1))][0] for k in range(n_ticks))) if n_ticks > 1 else [pts[0][0]]
         for i in tick_idxs:
